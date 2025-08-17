@@ -22,18 +22,10 @@ let clickEffects = [];
 let cellularGrid = [];
 let voronoiPoints = [];
 
-// Pattern morphing variables
-let morphing = {
-    enabled: false,
-    duration: 8,
-    hold: 10,
-    manual: 0,
-    currentTime: 0,
-    phase: 'hold', // 'hold', 'transition'
-    fromPattern: 'waves',
-    toPattern: 'ripples',
-    progress: 0
-};
+// Resize functionality variables
+let isResizing = false;
+let resizeStartX = 0;
+let resizeStartWidth = 0;
 
 // All available pattern types for morphing
 const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
@@ -88,6 +80,77 @@ function setup() {
     initVoronoi();
     
     setupControls();
+    setupResizeHandling();
+}
+
+function setupResizeHandling() {
+    const resizeHandle = document.getElementById('resize-handle');
+    const controlsPanel = document.getElementById('controls');
+    
+    // Update handle position initially
+    function updateHandlePosition() {
+        const controlsWidth = controlsPanel.offsetWidth;
+        resizeHandle.style.right = (controlsWidth - 4.5) + 'px'; // Center on the 1px border
+    }
+    
+    updateHandlePosition();
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartWidth = controlsPanel.offsetWidth;
+        
+        resizeHandle.classList.add('dragging');
+        controlsPanel.classList.add('resizing');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        
+        const deltaX = resizeStartX - e.clientX;
+        const newWidth = resizeStartWidth + deltaX;
+        const minWidth = 250;
+        const maxWidth = window.innerWidth * 0.3;
+        
+        const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+        controlsPanel.style.width = clampedWidth + 'px';
+        
+        // Update handle position
+        resizeHandle.style.right = (clampedWidth - 4.5) + 'px';
+        
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            
+            resizeHandle.classList.remove('dragging');
+            controlsPanel.classList.remove('resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+    
+    // Handle hover states
+    resizeHandle.addEventListener('mouseenter', () => {
+        if (!isResizing) {
+            controlsPanel.style.borderLeftColor = '#fff';
+        }
+    });
+    
+    resizeHandle.addEventListener('mouseleave', () => {
+        if (!isResizing) {
+            controlsPanel.style.borderLeftColor = '#333';
+        }
+    });
+    
+    // Update handle position on window resize
+    window.addEventListener('resize', updateHandlePosition);
 }
 
 function draw() {

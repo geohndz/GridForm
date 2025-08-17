@@ -20,6 +20,8 @@ body {
 
 #controls {
     width: 320px;
+    min-width: 250px;
+    max-width: 30vw;
     background: #000;
     border-left: 1px solid #333;
     height: 100vh;
@@ -27,6 +29,32 @@ body {
     overflow-x: hidden;
     padding: 0;
     font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+    position: relative;
+    transition: border-left-color 0.2s ease;
+}
+
+#controls.resizing {
+    border-left-color: #fff !important;
+}
+
+#resize-handle {
+    position: fixed;
+    right: 310.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 30px;
+    background: #000;
+    border: 1px solid #333;
+    cursor: ew-resize;
+    z-index: 1000;
+    border-radius: 1px;
+    pointer-events: auto;
+}
+
+#resize-handle:hover, #resize-handle.dragging {
+    background: #fff;
+    border-color: #fff;
 }
 
 #controls::-webkit-scrollbar {
