@@ -55,7 +55,7 @@ let settings = {
         type: 'ripples',
         speed: 0.02,
         scale: 0.08,
-        color: '#ff0000',
+        color: '#ffffff',
         glow: false
     },
     interactive: {
@@ -94,9 +94,6 @@ function draw() {
     background(0);
     time += 0.016; // ~60fps
     
-    // Update morphing
-    updateMorphing();
-    
     // Update interactive effects
     updateInteractiveEffects();
     
@@ -107,28 +104,9 @@ function draw() {
         for (let y = 0; y < gridRows; y++) {
             let xPos = (x + 0.5) * (width / gridCols);
             let yPos = (y + 0.5) * (height / gridRows);
-            
+
             // Calculate primary pattern value
             let value1 = getPatternValue(x, y, settings.pattern1, time);
-            
-            // Apply morphing if enabled
-            if (morphing.enabled && morphing.phase === 'transition') {
-                let morphPattern = {
-                    type: morphing.toPattern,
-                    speed: settings.pattern1.speed,
-                    scale: settings.pattern1.scale
-                };
-                let morphValue = getPatternValue(x, y, morphPattern, time);
-                value1 = lerp(value1, morphValue, morphing.progress);
-            } else if (morphing.manual > 0) {
-                let morphPattern = {
-                    type: morphing.toPattern,
-                    speed: settings.pattern1.speed,
-                    scale: settings.pattern1.scale
-                };
-                let morphValue = getPatternValue(x, y, morphPattern, time);
-                value1 = lerp(value1, morphValue, morphing.manual);
-            }
             
             let finalValue = value1;
             let finalColor = settings.pattern1.color;
@@ -176,39 +154,6 @@ function draw() {
             let char = selectedRamp[charIndex];
             
             text(char, xPos, yPos);
-        }
-    }
-}
-
-function updateMorphing() {
-    if (!morphing.enabled) return;
-    
-    morphing.currentTime += 0.016;
-    
-    if (morphing.phase === 'hold') {
-        if (morphing.currentTime >= morphing.hold) {
-            // Start transition
-            morphing.phase = 'transition';
-            morphing.currentTime = 0;
-            morphing.fromPattern = settings.pattern1.type;
-            morphing.toPattern = PATTERN_TYPES[Math.floor(Math.random() * PATTERN_TYPES.length)];
-            
-            // Update status
-            document.getElementById('morphStatus').textContent = `Morphing to ${morphing.toPattern}...`;
-        }
-    } else if (morphing.phase === 'transition') {
-        morphing.progress = morphing.currentTime / morphing.duration;
-        
-        if (morphing.progress >= 1) {
-            // Complete transition
-            morphing.phase = 'hold';
-            morphing.currentTime = 0;
-            morphing.progress = 0;
-            settings.pattern1.type = morphing.toPattern;
-            
-            // Update UI
-            document.getElementById('pattern1Type').value = morphing.toPattern;
-            document.getElementById('morphStatus').textContent = `Holding ${morphing.toPattern}`;
         }
     }
 }
@@ -355,7 +300,6 @@ function getPatternValue(x, y, pattern, time) {
     return (value + 1) / 2;
 }
 
-// Helper functions for new patterns
 function mandelbrotIteration(cx, cy, maxIter) {
     let zx = 0, zy = 0;
     for (let i = 0; i < maxIter; i++) {
@@ -693,45 +637,6 @@ function setupControls() {
         document.getElementById('pattern2ScaleValue').textContent = e.target.value;
     });
 
-    // Pattern Morphing
-    document.getElementById('morphingToggle').addEventListener('click', (e) => {
-        morphing.enabled = !morphing.enabled;
-        e.target.classList.toggle('active');
-        e.target.textContent = morphing.enabled ? 'Disable Auto Morphing' : 'Enable Auto Morphing';
-        
-        const morphingSettings = document.getElementById('morphingSettings');
-        morphingSettings.style.display = morphing.enabled ? 'block' : 'none';
-        
-        if (morphing.enabled) {
-            morphing.currentTime = 0;
-            morphing.phase = 'hold';
-            document.getElementById('morphStatus').textContent = `Holding ${settings.pattern1.type}`;
-        }
-    });
-
-    document.getElementById('morphDuration').addEventListener('input', (e) => {
-        morphing.duration = parseFloat(e.target.value);
-        document.getElementById('morphDurationValue').textContent = e.target.value;
-    });
-
-    document.getElementById('morphHold').addEventListener('input', (e) => {
-        morphing.hold = parseFloat(e.target.value);
-        document.getElementById('morphHoldValue').textContent = e.target.value;
-    });
-
-    document.getElementById('morphBlend').addEventListener('input', (e) => {
-        morphing.manual = parseFloat(e.target.value);
-        document.getElementById('morphBlendValue').textContent = e.target.value;
-        
-        if (morphing.manual > 0 && !morphing.enabled) {
-            // Pick a random target pattern for manual morphing
-            if (!morphing.toPattern || morphing.toPattern === settings.pattern1.type) {
-                let availablePatterns = PATTERN_TYPES.filter(p => p !== settings.pattern1.type);
-                morphing.toPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
-            }
-        }
-    });
-
     // Interactive Effects
     document.getElementById('interactiveToggle').addEventListener('click', (e) => {
         settings.interactive.enabled = !settings.interactive.enabled;
@@ -779,7 +684,6 @@ function setupDropdowns() {
         'displayHeader',
         'pattern1Header',
         'pattern2Header',
-        'morphingHeader',
         'interactiveHeader'
     ];
 
@@ -787,7 +691,6 @@ function setupDropdowns() {
         'displayContent',
         'pattern1Content', 
         'pattern2Content',
-        'morphingContent',
         'interactiveContent'
     ];
 
