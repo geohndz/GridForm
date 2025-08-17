@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridForm</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+    <link rel="stylesheet" href="/styles/styles.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="controls">
+        <div class="controls-content">
+            <div class="control-group">
+                <div class="dropdown-header" id="displayHeader">
+                    <span>Display Settings</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="displayContent">
+                    <label>Columns</label>
+                    <input type="range" id="gridCols" min="20" max="150" value="80" step="5">
+                    <div class="value-display" id="gridColsValue">80</div>
+                    
+                    <label>Rows</label>
+                    <input type="range" id="gridRows" min="15" max="100" value="50" step="5">
+                    <div class="value-display" id="gridRowsValue">50</div>
+                    
+                    <label>Character Size</label>
+                    <input type="range" id="charSize" min="6" max="20" value="12" step="1">
+                    <div class="value-display" id="charSizeValue">12</div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="dropdown-header" id="pattern1Header">
+                    <span>Primary Pattern</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="pattern1Content">
+                    <label>Color</label>
+                    <input type="color" id="pattern1Color" value="#ffffff" style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer;">
+                    
+                    <label>
+                        <input type="checkbox" id="pattern1Glow" style="margin-right: 8px; accent-color: #ffffff;">
+                        Progressive Glow
+                    </label>
+                    
+                    <label>Pattern Type</label>
+                    <select id="pattern1Type">
+                        <option value="waves">Sine Waves</option>
+                        <option value="ripples">Ripples</option>
+                        <option value="noise">Perlin Noise</option>
+                        <option value="spiral">Spiral</option>
+                        <option value="checkerboard">Checkerboard</option>
+                        <option value="stripes">Stripes</option>
+                        <option value="plasma">Plasma</option>
+                        <option value="mandelbrot">Mandelbrot</option>
+                        <option value="julia">Julia Set</option>
+                        <option value="cellular">Cellular Automata</option>
+                        <option value="voronoi">Voronoi</option>
+                        <option value="tunnel">Tunnel</option>
+                        <option value="mosaic">Mosaic</option>
+                    </select>
+                    
+                    <label>Character Set</label>
+                    <select id="pattern1CharSet">
+                        <option value="blocks">█▉▊▋▌▍▎▏▒░▓</option>
+                        <option value="ascii">.:-=+*#%@</option>
+                        <option value="hex">0123456789ABCDEF</option>
+                        <option value="numbers">0123456789</option>
+                        <option value="letters">ABCDEFGHIJ</option>
+                        <option value="symbols">!@#$%^&*().</option>
+                        <option value="braille">⠀⠁⠃⠇⠏⠟⠿⡿⣿</option>
+                        <option value="custom1">Custom</option>
+                    </select>
+                    
+                    <div id="pattern1CustomCharInput" style="display: none; margin-top: 10px;">
+                        <label>Custom Characters (light to dark)</label>
+                        <input type="text" id="pattern1CustomChars" placeholder="Enter characters..." style="width: 100%; padding: 5px; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px;">
+                    </div>
+                    
+                    <label>Speed</label>
+                    <input type="range" id="pattern1Speed" min="0.001" max="0.05" value="0.01" step="0.001">
+                    <div class="value-display" id="pattern1SpeedValue">0.01</div>
+                    
+                    <label>Scale</label>
+                    <input type="range" id="pattern1Scale" min="0.01" max="0.2" value="0.05" step="0.005">
+                    <div class="value-display" id="pattern1ScaleValue">0.05</div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="dropdown-header" id="pattern2Header">
+                    <span>Secondary Pattern</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="pattern2Content">
+                    <button class="toggle-btn" id="pattern2Toggle">Enable Secondary Pattern</button>
+                    
+                    <div id="pattern2Settings" style="display: none;">
+                        <label>Color</label>
+                        <input type="color" id="pattern2Color" value="#ff0000" style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
+                        
+                        <label>
+                            <input type="checkbox" id="pattern2Glow" style="margin-right: 8px; accent-color: #ffffff;">
+                            Progressive Glow
+                        </label>
+                        
+                        <label>Pattern Type</label>
+                        <select id="pattern2Type">
+                            <option value="waves">Sine Waves</option>
+                            <option value="ripples">Ripples</option>
+                            <option value="noise">Perlin Noise</option>
+                            <option value="spiral">Spiral</option>
+                            <option value="checkerboard">Checkerboard</option>
+                            <option value="stripes">Stripes</option>
+                            <option value="plasma">Plasma</option>
+                            <option value="mandelbrot">Mandelbrot</option>
+                            <option value="julia">Julia Set</option>
+                            <option value="cellular">Cellular Automata</option>
+                            <option value="voronoi">Voronoi</option>
+                            <option value="tunnel">Tunnel</option>
+                            <option value="mosaic">Mosaic</option>
+                        </select>
+                        
+                        <label>Character Set</label>
+                        <select id="pattern2CharSet">
+                            <option value="blocks">█▉▊▋▌▍▎▏▒░▓</option>
+                            <option value="ascii">.:-=+*#%@</option>
+                            <option value="hex">0123456789ABCDEF</option>
+                            <option value="numbers">0123456789</option>
+                            <option value="letters">ABCDEFGHIJ</option>
+                            <option value="symbols">!@#$%^&*().</option>
+                            <option value="braille">⠀⠁⠃⠇⠏⠟⠿⡿⣿</option>
+                            <option value="custom2">Custom</option>
+                        </select>
+                        
+                        <div id="pattern2CustomCharInput" style="display: none; margin-top: 10px;">
+                            <label>Custom Characters (light to dark)</label>
+                            <input type="text" id="pattern2CustomChars" placeholder="Enter characters..." style="width: 100%; padding: 5px; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px;">
+                        </div>
+                        
+                        <label>Speed</label>
+                        <input type="range" id="pattern2Speed" min="0.001" max="0.05" value="0.02" step="0.001">
+                        <div class="value-display" id="pattern2SpeedValue">0.02</div>
+                        
+                        <label>Scale</label>
+                        <input type="range" id="pattern2Scale" min="0.01" max="0.2" value="0.08" step="0.005">
+                        <div class="value-display" id="pattern2ScaleValue">0.08</div>
+                        
+                        <label>Blend Mode</label>
+                        <select id="blendMode">
+                            <option value="add">Add</option>
+                            <option value="multiply">Multiply</option>
+                            <option value="overlay">Overlay</option>
+                            <option value="difference">Difference</option>
+                            <option value="screen">Screen</option>
+                        </select>
+                        
+                        <label>Secondary Opacity</label>
+                        <input type="range" id="blendAmount" min="0" max="1" value="0.5" step="0.1">
+                        <div class="value-display" id="blendAmountValue">0.5</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="dropdown-header" id="morphingHeader">
+                    <span>Pattern Morphing</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="morphingContent">
+                    <button class="toggle-btn" id="morphingToggle">Enable Auto Morphing</button>
+                    
+                    <div id="morphingSettings" style="display: none;">
+                        <label>Transition Duration (seconds)</label>
+                        <input type="range" id="morphDuration" min="2" max="15" value="8" step="1">
+                        <div class="value-display" id="morphDurationValue">8</div>
+                        
+                        <label>Hold Duration (seconds)</label>
+                        <input type="range" id="morphHold" min="3" max="20" value="10" step="1">
+                        <div class="value-display" id="morphHoldValue">10</div>
+                        
+                        <label>Manual Blend</label>
+                        <input type="range" id="morphBlend" min="0" max="1" value="0" step="0.1">
+                        <div class="value-display" id="morphBlendValue">0.0</div>
+                        
+                        <div class="morphing-indicator" id="morphStatus">Ready to morph</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="dropdown-header" id="interactiveHeader">
+                    <span>Interactive Effects</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="interactiveContent">
+                    <button class="toggle-btn" id="interactiveToggle">Enable Interactive Effects</button>
+                    
+                    <div id="interactiveSettings" style="display: none;">
+                        <label>Effect Type</label>
+                        <select id="interactiveType">
+                            <option value="ripple">Mouse Ripples</option>
+                            <option value="attract">Mouse Attractor</option>
+                            <option value="repel">Mouse Repeller</option>
+                            <option value="trail">Mouse Trail</option>
+                            <option value="distort">Mouse Distortion</option>
+                        </select>
+                        
+                        <label>Effect Strength</label>
+                        <input type="range" id="interactiveStrength" min="0.1" max="2.0" value="1.0" step="0.1">
+                        <div class="value-display" id="interactiveStrengthValue">1.0</div>
+                        
+                        <label>Effect Radius</label>
+                        <input type="range" id="interactiveRadius" min="0.05" max="0.5" value="0.2" step="0.05">
+                        <div class="value-display" id="interactiveRadiusValue">0.2</div>
+                        
+                        <label>
+                            <input type="checkbox" id="interactiveClick" style="margin-right: 8px; accent-color: #ffffff;" checked>
+                            Click to Add Permanent Effects
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/scripts.js"></script>
+</body>
+</html>
