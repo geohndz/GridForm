@@ -233,3 +233,20 @@ input[type="range"]::-moz-range-track {
     margin-top: 10px;
     overflow: hidden;
 }
+
+.title {
+    margin-top: 30px;
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+
+    position: fixed;
+    left: 30px;
+
+    font-family: "Feature Mono";
+    font-size: 32px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 24px;
+    color: #888;
+}
