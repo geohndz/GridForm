@@ -37,6 +37,8 @@ let resizeStartWidth = 0;
 
 let isPaused = false;
 
+let speedMultiplier = 1.0;
+
 // All available pattern types for morphing
 const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
 
@@ -93,9 +95,24 @@ function setup() {
     
     setupControls();
     setupPlayPauseButton();
+    setupSpeedButton();
     setupRandomizeButton();
     setupDownloadButton();
     setupResizeHandling();
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // Tab is hidden/inactive - pause if not already paused
+            if (!isPaused) {
+                noLoop();
+            }
+        } else {
+            // Tab is visible/active - resume if not manually paused
+            if (!isPaused) {
+                loop();
+            }
+        }
+    });
 }
 
 function setupResizeHandling() {
@@ -170,7 +187,7 @@ function setupResizeHandling() {
 
 function draw() {
     background(0);
-    time += 0.016; // ~60fps
+    time += 0.016 * speedMultiplier; // ~60fps with speed multiplier
 
     // Update interactive effects
     updateInteractiveEffects();
@@ -1150,6 +1167,60 @@ function exportTextFile(filename) {
     } catch (error) {
         alert('Text file download failed.');
     }
+}
+
+function setupSpeedButton() {
+    const speedBtn = document.getElementById('speed-btn');
+    const speedMenu = document.getElementById('speed-menu');
+    const speedOptions = speedMenu.querySelectorAll('.speed-option');
+    const speedText = speedBtn.querySelector('.speed-text');
+    
+    let menuVisible = false;
+    let currentSpeed = 1.0;
+    
+    const hideMenu = () => {
+        menuVisible = false;
+        speedMenu.classList.remove('show');
+    };
+    
+    speedBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        menuVisible = !menuVisible;
+        speedMenu.classList.toggle('show', menuVisible);
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
+            hideMenu();
+        }
+    });
+    
+    speedOptions.forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const speed = parseFloat(option.dataset.speed);
+            currentSpeed = speed;
+            
+            // Update active state
+            speedOptions.forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+            
+            // Update button text
+            speedText.textContent = speed === 1 ? '1×' : `${speed}×`;
+            
+            // Apply speed multiplier to animation
+            applySpeedMultiplier(speed);
+            
+            hideMenu();
+        });
+    });
+}
+
+function applySpeedMultiplier(multiplier) {
+    speedMultiplier = multiplier;
 }
 
 function updateUIFromSettings() {

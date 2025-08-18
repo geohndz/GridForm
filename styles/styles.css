@@ -381,3 +381,101 @@ input[type="range"]::-moz-range-track {
 .download-option:last-child {
     border-radius: 0 0 4px 4px;
 }
+
+#speed-container {
+    position: relative;
+}
+
+#speed-btn {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+#speed-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: #fff;
+}
+
+#speed-btn:hover .speed-text {
+    color: #fff;
+}
+
+.speed-text {
+    font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+    font-size: 16px;
+    color: #333;
+    transition: color 0.2s ease;
+    font-weight: 400;
+}
+
+.speed-menu {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 4px;
+    min-width: 100px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+}
+
+.speed-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+.speed-option {
+    padding: 10px 15px;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #222;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.speed-option:last-child {
+    border-bottom: none;
+}
+
+.speed-option:hover {
+    background: #222;
+    color: #fff;
+}
+
+.speed-option:first-child {
+    border-radius: 4px 4px 0 0;
+}
+
+.speed-option:last-child {
+    border-radius: 0 0 4px 4px;
+}
+
+.speed-option .check-icon {
+    width: 16px;
+    height: 16px;
+    stroke: #fff;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.speed-option.active .check-icon {
+    opacity: 1;
+}
