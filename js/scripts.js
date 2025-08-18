@@ -1360,13 +1360,26 @@ function exportHighResCanvas(filename, ext) {
     // Calculate scale factor for 300 DPI (300/72 = ~4.17x)
     const dpiScale = 300 / 72;
 
-    // Create off-screen canvas for high-res rendering
+    // Calculate the same scale factor as draw() function (don't scale up, only down)
+    let gridPixelWidth = gridCols * baseCharWidth;
+    let gridPixelHeight = gridRows * baseCharHeight;
+    let scaleX = width / gridPixelWidth;
+    let scaleY = height / gridPixelHeight;
+    let displayGridScale = Math.min(scaleX, scaleY, 1.0); // Same as draw() function
+
+    // Calculate the actual grid dimensions that would be displayed
+    let displayCharWidth = baseCharWidth * displayGridScale * settings.charSpacing;
+    let displayCharHeight = baseCharHeight * displayGridScale * settings.charSpacing;
+    let displayGridWidth = gridCols * displayCharWidth;
+    let displayGridHeight = gridRows * displayCharHeight;
+
+    // Create off-screen canvas with EXACT grid dimensions, scaled up for high resolution
     const offscreenCanvas = document.createElement('canvas');
     const ctx = offscreenCanvas.getContext('2d');
 
-    // Use the EXACT same dimensions as the current canvas, just scaled up
-    offscreenCanvas.width = Math.floor(width * dpiScale);
-    offscreenCanvas.height = Math.floor(height * dpiScale);
+    // Set canvas size to exactly match the grid dimensions at high resolution
+    offscreenCanvas.width = Math.floor(displayGridWidth * dpiScale);
+    offscreenCanvas.height = Math.floor(displayGridHeight * dpiScale);
 
     // Clear the off-screen canvas
     ctx.fillStyle = '#000000';
@@ -1376,22 +1389,14 @@ function exportHighResCanvas(filename, ext) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Use the SAME scaling logic as the main draw() function, just scaled up
-    let gridPixelWidth = gridCols * baseCharWidth;
-    let gridPixelHeight = gridRows * baseCharHeight;
+    // Scale up the display dimensions to high resolution
+    let actualCharWidth = displayCharWidth * dpiScale;
+    let actualCharHeight = displayCharHeight * dpiScale;
+    let actualCharSize = (settings.charSize * displayGridScale) * dpiScale;
 
-    // Use the same scale calculation as draw(), but with the high-res dimensions
-    let scaleX = offscreenCanvas.width / gridPixelWidth;
-    let scaleY = offscreenCanvas.height / gridPixelHeight;
-    let currentGridScale = Math.min(scaleX, scaleY, dpiScale); // This was the issue - should match draw()
-
-    let actualCharWidth = baseCharWidth * currentGridScale * settings.charSpacing;
-    let actualCharHeight = baseCharHeight * currentGridScale * settings.charSpacing;
-    let actualCharSize = settings.charSize * currentGridScale;
-
-    // Center the grid exactly like in draw()
-    let startX = (offscreenCanvas.width - (gridCols * actualCharWidth)) / 2;
-    let startY = (offscreenCanvas.height - (gridRows * actualCharHeight)) / 2;
+    // Since the canvas is exactly the grid size, start at (0,0)
+    let startX = 0;
+    let startY = 0;
 
     ctx.font = `${actualCharSize}px monospace`;
 
@@ -1582,9 +1587,6 @@ function exportGifAnimation(filename) {
         return;
     }
 
-    // TODO: Future enhancement - Add UI controls for custom GIF duration
-    // This could include a dialog to let users choose frame count and duration
-
     // Ensure animation is running for GIF recording
     if (isPaused) {
         alert('Please unpause the animation before recording a GIF.');
@@ -1607,7 +1609,59 @@ function exportGifAnimation(filename) {
     } else {
         duration = 1.0; // Default 1 second
     }
+
+    try {
+        // Show a brief message that recording is starting
+        console.log(`Starting GIF recording: ${filename}.gif (${duration}s duration)`);
+        console.log('Note: Processing may take several seconds after recording completes');
+        
+        // Show progress overlay and start recording
+        showGifProgressOverlay(duration);
+        
+        // Create a custom GIF recording with proper grid dimensions
+        createCustomGif(filename, duration);
+        
+        // Show a "will download soon" toast to set expectations
+        showRecordingToast(`${filename}.gif`, duration);
+        
+    } catch (error) {
+        console.error('GIF export failed:', error);
+        alert('GIF export failed. Please try again. Make sure your browser supports the required features.');
+    }
+}
+
+function createCustomGif(filename, duration) {
+    // Calculate the same scale factor as draw() function (don't scale up, only down)
+    let gridPixelWidth = gridCols * baseCharWidth;
+    let gridPixelHeight = gridRows * baseCharHeight;
+    let scaleX = width / gridPixelWidth;
+    let scaleY = height / gridPixelHeight;
+    let displayGridScale = Math.min(scaleX, scaleY, 1.0); // Same as draw() function
+
+    // Calculate the actual grid dimensions that would be displayed
+    let displayCharWidth = baseCharWidth * displayGridScale * settings.charSpacing;
+    let displayCharHeight = baseCharHeight * displayGridScale * settings.charSpacing;
+    let displayGridWidth = gridCols * displayCharWidth;
+    let displayGridHeight = gridRows * displayCharHeight;
+
+    // Create off-screen canvas with EXACT grid dimensions
+    const offscreenCanvas = document.createElement('canvas');
+    const ctx = offscreenCanvas.getContext('2d');
+
+    // Set canvas size to exactly match the grid dimensions
+    offscreenCanvas.width = Math.floor(displayGridWidth);
+    offscreenCanvas.height = Math.floor(displayGridHeight);
+
+    // Temporarily replace the main canvas with our off-screen canvas for GIF recording
+    const originalCanvas = canvas;
+    const originalWidth = width;
+    const originalHeight = height;
     
+    // Store the original canvas reference
+    canvas = offscreenCanvas;
+    width = offscreenCanvas.width;
+    height = offscreenCanvas.height;
+
     // Configure GIF options for perfect loops
     const options = {
         units: "seconds", // Use seconds instead of frames for more reliable recording
@@ -1617,25 +1671,15 @@ function exportGifAnimation(filename) {
         notificationID: 'gifProgress'
     };
 
-    try {
-        // Show a brief message that recording is starting
-        console.log(`Starting GIF recording: ${filename}.gif (${duration}s duration)`);
-        console.log('GIF options:', options);
-        console.log('Note: Processing may take several seconds after recording completes');
-        
-        // Show progress overlay and start recording
-        showGifProgressOverlay(duration);
-        
-        // Start the GIF recording
-        saveGif(`${filename}.gif`, duration, options);
-        
-        // Show a "will download soon" toast to set expectations
-        showRecordingToast(`${filename}.gif`, duration);
-        
-    } catch (error) {
-        console.error('GIF export failed:', error);
-        alert('GIF export failed. Please try again. Make sure your browser supports the required features.');
-    }
+    // Start the GIF recording with the off-screen canvas
+    saveGif(`${filename}.gif`, duration, options);
+
+    // Restore the original canvas after a delay to allow recording to complete
+    setTimeout(() => {
+        canvas = originalCanvas;
+        width = originalWidth;
+        height = originalHeight;
+    }, (duration * 1000) + 1000); // Wait for recording duration + 1 second buffer
 }
 
 function exportTextFile(filename) {
