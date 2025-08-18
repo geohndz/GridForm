@@ -40,7 +40,8 @@ let settings = {
         speed: 0.01,
         scale: 0.05,
         color: '#ffffff',
-        glow: false
+        glow: false,
+        rotation: false
     },
     pattern2: {
         enabled: false,
@@ -48,7 +49,8 @@ let settings = {
         speed: 0.02,
         scale: 0.08,
         color: '#00ff00',
-        glow: false
+        glow: false,
+        rotation: false
     },
     interactive: {
         enabled: false,
@@ -176,6 +178,8 @@ function draw() {
             let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
             let glowIntensity2 = 0;
             let useRamp1 = true;
+            let shouldRotate1 = settings.pattern1.rotation;
+            let shouldRotate2 = false;
 
             // Add secondary pattern if enabled
             if (settings.pattern2.enabled) {
@@ -195,6 +199,7 @@ function draw() {
                 // Decide which character set to use based on blend strength
                 let blendStrength = value1 * value2 * settings.blend.amount;
                 useRamp1 = blendStrength < 0.5;
+                shouldRotate2 = settings.pattern2.rotation;
             }
 
             // Apply interactive effects
@@ -219,7 +224,23 @@ function draw() {
             charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
             let char = selectedRamp[charIndex];
 
-            text(char, xPos, yPos);
+            // Calculate rotation if enabled
+            let rotationAngle = 0;
+            if ((useRamp1 && shouldRotate1) || (!useRamp1 && shouldRotate2)) {
+                // Create rotation based on pattern value and position
+                rotationAngle = finalValue * TWO_PI + (x + y) * 0.1 + time * 2;
+            }
+
+            // Draw character with or without rotation
+            if (rotationAngle !== 0) {
+                push();
+                translate(xPos, yPos);
+                rotate(rotationAngle);
+                text(char, 0, 0);
+                pop();
+            } else {
+                text(char, xPos, yPos);
+            }
         }
     }
 }
@@ -669,6 +690,10 @@ function setupControls() {
         settings.pattern1.glow = e.target.checked;
     });
 
+    document.getElementById('pattern1Rotation').addEventListener('change', (e) => {
+        settings.pattern1.rotation = e.target.checked;
+    });
+
     document.getElementById('pattern1Type').addEventListener('change', (e) => {
         settings.pattern1.type = e.target.value;
         if (settings.pattern1.type === 'cellular') {
@@ -704,6 +729,10 @@ function setupControls() {
 
     document.getElementById('pattern2Glow').addEventListener('change', (e) => {
         settings.pattern2.glow = e.target.checked;
+    });
+
+    document.getElementById('pattern2Rotation').addEventListener('change', (e) => {
+        settings.pattern2.rotation = e.target.checked;
     });
 
     document.getElementById('pattern2Type').addEventListener('change', (e) => {
