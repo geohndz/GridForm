@@ -156,13 +156,13 @@ function setupResizeHandling() {
 function draw() {
     background(0);
     time += 0.016; // ~60fps
-    
+
     // Update interactive effects
     updateInteractiveEffects();
-    
+
     textAlign(CENTER, CENTER);
     textSize(settings.charSize);
-    
+
     for (let x = 0; x < gridCols; x++) {
         for (let y = 0; y < gridRows; y++) {
             let xPos = (x + 0.5) * (width / gridCols);
@@ -170,52 +170,55 @@ function draw() {
 
             // Calculate primary pattern value
             let value1 = getPatternValue(x, y, settings.pattern1, time);
-            
+
             let finalValue = value1;
             let finalColor = settings.pattern1.color;
             let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
             let glowIntensity2 = 0;
             let useRamp1 = true;
-            
+
             // Add secondary pattern if enabled
             if (settings.pattern2.enabled) {
                 let value2 = getPatternValue(x, y, settings.pattern2, time);
                 finalValue = blendValues(value1, value2, settings.blend.mode, settings.blend.amount);
                 glowIntensity2 = settings.pattern2.glow ? value2 : 0;
-                
+
                 finalColor = blendColors(
-                    settings.pattern1.color, 
-                    settings.pattern2.color, 
-                    settings.blend.mode, 
-                    value1, 
-                    value2, 
+                    settings.pattern1.color,
+                    settings.pattern2.color,
+                    settings.blend.mode,
+                    value1,
+                    value2,
                     settings.blend.amount
                 );
-                
+
                 // Decide which character set to use based on blend strength
                 let blendStrength = value1 * value2 * settings.blend.amount;
                 useRamp1 = blendStrength < 0.5;
             }
-            
+
             // Apply interactive effects
             if (settings.interactive.enabled) {
                 finalValue = applyInteractiveEffect(x, y, finalValue);
             }
-            
-            // Apply glow effect
+
+            // Apply glow effect BEFORE setting fill and drawing text
             let maxGlowIntensity = Math.max(glowIntensity1, glowIntensity2);
             if (maxGlowIntensity > 0) {
-                applyGlow(finalColor, maxGlowIntensity, settings.charSize);
+                // Enhance the glow intensity based on the pattern value
+                let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7); // Use power curve to make mid-values more visible
+                applyGlow(finalColor, enhancedGlowIntensity, settings.charSize);
             }
-            
+
+            // Set fill color AFTER applying glow
             fill(finalColor);
-            
+
             // Convert to ASCII character using appropriate ramp
             let selectedRamp = useRamp1 ? currentRamp1 : currentRamp2;
             let charIndex = Math.floor(map(finalValue, 0, 1, 0, selectedRamp.length - 1));
             charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
             let char = selectedRamp[charIndex];
-            
+
             text(char, xPos, yPos);
         }
     }
@@ -523,18 +526,35 @@ function applyGlow(color, intensity, charSize) {
     if (intensity <= 0) return;
     
     let colorMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (!colorMatch) return;
+    if (!colorMatch) {
+        // Handle hex colors if rgb parsing fails
+        let hexMatch = color.match(/#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})/);
+        if (hexMatch) {
+            let r = parseInt(hexMatch[1], 16);
+            let g = parseInt(hexMatch[2], 16);
+            let b = parseInt(hexMatch[3], 16);
+            colorMatch = [null, r, g, b];
+        } else {
+            return;
+        }
+    }
     
     let r = parseInt(colorMatch[1]);
     let g = parseInt(colorMatch[2]);
     let b = parseInt(colorMatch[3]);
     
-    let glowSize = intensity * charSize * 0.8;
-    let glowAlpha = intensity * 0.6;
+    // Make glow much more visible
+    let glowSize = intensity * charSize * 3.0;  // Increased from 0.8 to 3.0
+    let glowAlpha = Math.min(intensity * 1.5, 1.0);  // Increased from 0.6 to 1.5 (capped at 1.0)
     
     push();
+    // Apply multiple glow layers for stronger effect
     drawingContext.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
     drawingContext.shadowBlur = glowSize;
+    
+    // Add a second, more intense inner glow
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 0;
     pop();
 }
 
