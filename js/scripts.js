@@ -27,6 +27,8 @@ let isResizing = false;
 let resizeStartX = 0;
 let resizeStartWidth = 0;
 
+let isPaused = false;
+
 // All available pattern types for morphing
 const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
 
@@ -82,6 +84,7 @@ function setup() {
     initVoronoi();
     
     setupControls();
+    setupPlayPauseButton();
     setupResizeHandling();
 }
 
@@ -837,3 +840,25 @@ function setupDropdowns() {
 function windowResized() {
     resizeCanvas(800, 500);
 } 
+
+function setupPlayPauseButton() {
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const pauseIcon = playPauseBtn.querySelector('.pause-icon');
+    const playIcon = playPauseBtn.querySelector('.play-icon');
+    
+    playPauseBtn.addEventListener('click', () => {
+        isPaused = !isPaused;
+        playPauseBtn.classList.toggle('paused', isPaused);
+        
+        if (isPaused) {
+            pauseIcon.style.display = 'none';
+            playIcon.style.display = 'block';
+            noLoop();
+        } else {
+            pauseIcon.style.display = 'block';
+            playIcon.style.display = 'none';
+            loop();
+        }
+    });
+}
+
