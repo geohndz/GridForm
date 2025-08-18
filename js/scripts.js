@@ -1,3 +1,11 @@
+// Add once (top-level is fine):
+window.addEventListener('error', ev => {
+    console.error('[window.error]', ev.message, ev.filename, ev.lineno, ev.colno, ev.error);
+  });
+  window.addEventListener('unhandledrejection', ev => {
+    console.error('[unhandledrejection]', ev.reason);
+  });
+
 // ASCII grayscale ramp - from darkest to lightest
 const ASCII_RAMPS = {
     blocks: " ░▒▓▌▍▎▏▊▋█",
@@ -61,7 +69,7 @@ let settings = {
         radius: 0.2,
         clickEnabled: true
     },
-    blend: {
+    blendSettings: {
         mode: 'multiply',
         amount: 0.5
     }
@@ -86,6 +94,7 @@ function setup() {
     setupControls();
     setupPlayPauseButton();
     setupRandomizeButton();
+    setupDownloadButton();
     setupResizeHandling();
 }
 
@@ -188,20 +197,20 @@ function draw() {
             // Add secondary pattern if enabled
             if (settings.pattern2.enabled) {
                 let value2 = getPatternValue(x, y, settings.pattern2, time);
-                finalValue = blendValues(value1, value2, settings.blend.mode, settings.blend.amount);
+                finalValue = blendValues(value1, value2, settings.blendSettings.mode, settings.blendSettings.amount);
                 glowIntensity2 = settings.pattern2.glow ? value2 : 0;
 
                 finalColor = blendColors(
                     settings.pattern1.color,
                     settings.pattern2.color,
-                    settings.blend.mode,
+                    settings.blendSettings.mode,
                     value1,
                     value2,
-                    settings.blend.amount
+                    settings.blendSettings.amount
                 );
 
                 // Decide which character set to use based on blend strength
-                let blendStrength = value1 * value2 * settings.blend.amount;
+                let blendStrength = value1 * value2 * settings.blendSettings.amount;
                 useRamp1 = blendStrength < 0.5;
                 shouldRotate2 = settings.pattern2.rotation;
             }
@@ -797,11 +806,11 @@ function setupControls() {
 
     // Blending
     document.getElementById('blendMode').addEventListener('change', (e) => {
-        settings.blend.mode = e.target.value;
+        settings.blendSettings.mode = e.target.value;
     });
 
     document.getElementById('blendAmount').addEventListener('input', (e) => {
-        settings.blend.amount = parseFloat(e.target.value);
+        settings.blendSettings.amount = parseFloat(e.target.value);
         document.getElementById('blendAmountValue').textContent = e.target.value;
     });
 }
@@ -901,14 +910,14 @@ function setupRandomizeButton() {
             settings.pattern2.scale = Math.random() * 0.19 + 0.01;
             settings.pattern2.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
             settings.pattern2.glow = Math.random() > 0.5;
-            settings.blend.amount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
+            settings.blendSettings.amount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
             
             // Randomize secondary character set
             const selectedCharSet2 = charSets[Math.floor(Math.random() * charSets.length)];
             currentRamp2 = ASCII_RAMPS[selectedCharSet2];
             
             const blendModes = ['add', 'multiply', 'overlay', 'difference', 'screen'];
-            settings.blend.mode = blendModes[Math.floor(Math.random() * blendModes.length)];
+            settings.blendSettings.mode = blendModes[Math.floor(Math.random() * blendModes.length)];
         }
         
         // Reinitialize special patterns if needed
@@ -922,6 +931,225 @@ function setupRandomizeButton() {
         // Update UI to reflect changes
         updateUIFromSettings();
     });
+}
+
+function setupDownloadButton() {
+    const downloadBtn = document.getElementById('download-btn');
+    const downloadMenu = document.getElementById('download-menu');
+    const downloadOpts = downloadMenu.querySelectorAll('.download-option');
+  
+    let menuVisible = false;
+    let isSaving = false;
+  
+    const hideMenu = () => {
+        menuVisible = false;
+        downloadMenu.classList.remove('show');
+    };
+  
+    downloadBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        menuVisible = !menuVisible;
+        downloadMenu.classList.toggle('show', menuVisible);
+    });
+  
+    document.addEventListener('click', (e) => {
+        if (!downloadBtn.contains(e.target) && !downloadMenu.contains(e.target)) {
+            hideMenu();
+        }
+    });
+  
+    downloadOpts.forEach(opt => {
+        const handler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isSaving) return;
+            isSaving = true;
+  
+            const format = opt.dataset.format;
+  
+            setTimeout(() => {
+                try {
+                    exportCanvasFile(format);
+                } catch (err) {
+                    console.error('Download failed:', err);
+                } finally {
+                    setTimeout(() => {
+                        hideMenu();
+                        isSaving = false;
+                    }, 100);
+                }
+            }, 50);
+        };
+  
+        opt.addEventListener('click', handler, { passive: false });
+    });
+}
+
+function exportCanvasFile(format) {
+    const pattern1Name = settings.pattern1.type;
+    const pattern2Name = settings.pattern2.enabled ? `-${settings.pattern2.type}` : '';
+    const base = `gridform-${pattern1Name}${pattern2Name}`;
+    const ext = (format === 'jpeg') ? 'jpg' : format;
+  
+    if (format === 'txt') {
+        exportTextFile(base);
+        return;
+    }
+
+    if (ext !== 'png' && ext !== 'jpg') {
+        alert(`Export format ${format} not supported yet.`);
+        return;
+    }
+
+    // Get canvas element
+    let domCanvas = null;
+    
+    if (canvas && canvas.canvas) {
+        domCanvas = canvas.canvas;
+    } else if (canvas && canvas.elt) {
+        domCanvas = canvas.elt;
+    } else {
+        domCanvas = document.querySelector('canvas');
+    }
+
+    if (!domCanvas) {
+        alert('Canvas not available for download');
+        return;
+    }
+
+    // Primary method: toBlob
+    try {
+        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+        const quality = ext === 'jpg' ? 0.9 : undefined;
+        
+        domCanvas.toBlob((blob) => {
+            if (!blob) {
+                tryP5SaveMethod(base, ext);
+                return;
+            }
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${base}.${ext}`;
+            a.style.display = 'none';
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 1000);
+            
+        }, mimeType, quality);
+        
+    } catch (error) {
+        tryP5SaveMethod(base, ext);
+    }
+}
+
+function tryP5SaveMethod(filename, ext) {
+    try {
+        if (typeof save === 'function') {
+            save(canvas, `${filename}.${ext}`);
+        } else if (typeof saveCanvas === 'function') {
+            saveCanvas(canvas, filename, ext);
+        } else {
+            throw new Error('No p5.js save functions available');
+        }
+    } catch (p5Error) {
+        tryManualSave(filename, ext);
+    }
+}
+
+function tryManualSave(filename, ext) {
+    try {
+        const domCanvas = canvas?.canvas || document.querySelector('canvas');
+        if (!domCanvas) {
+            throw new Error('No canvas element found');
+        }
+        
+        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+        const dataURL = domCanvas.toDataURL(mimeType, ext === 'jpg' ? 0.9 : undefined);
+        
+        if (!dataURL || dataURL === 'data:,') {
+            throw new Error('Canvas toDataURL failed');
+        }
+        
+        const byteString = atob(dataURL.split(',')[1]);
+        const arrayBuffer = new ArrayBuffer(byteString.length);
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        for (let i = 0; i < byteString.length; i++) {
+            uint8Array[i] = byteString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([arrayBuffer], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.${ext}`;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        alert('Download failed completely. Please try refreshing the page.');
+    }
+}
+
+function exportTextFile(filename) {
+    let textContent = '';
+
+    for (let y = 0; y < gridRows; y++) {
+        for (let x = 0; x < gridCols; x++) {
+            let value1 = getPatternValue(x, y, settings.pattern1, time);
+            let finalValue = value1;
+            let useRamp1 = true;
+
+            if (settings.pattern2.enabled) {
+                let value2 = getPatternValue(x, y, settings.pattern2, time);
+                finalValue = blendValues(value1, value2, settings.blendSettings.mode, settings.blendSettings.amount);
+
+                let blendStrength = value1 * value2 * settings.blendSettings.amount;
+                useRamp1 = blendStrength < 0.5;
+            }
+
+            if (settings.interactive.enabled) {
+                finalValue = applyInteractiveEffect(x, y, finalValue);
+            }
+
+            let selectedRamp = useRamp1 ? currentRamp1 : currentRamp2;
+            let charIndex = Math.floor(map(finalValue, 0, 1, 0, selectedRamp.length - 1));
+            charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
+            let char = selectedRamp[charIndex];
+
+            textContent += char;
+        }
+        textContent += '\n';
+    }
+
+    try {
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename + '.txt';
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        alert('Text file download failed.');
+    }
 }
 
 function updateUIFromSettings() {
@@ -955,9 +1183,9 @@ function updateUIFromSettings() {
         document.getElementById('pattern2ScaleValue').textContent = settings.pattern2.scale.toFixed(3);
         document.getElementById('pattern2Color').value = settings.pattern2.color;
         document.getElementById('pattern2Glow').checked = settings.pattern2.glow;
-        document.getElementById('blendMode').value = settings.blend.mode;
-        document.getElementById('blendAmount').value = settings.blend.amount;
-        document.getElementById('blendAmountValue').textContent = settings.blend.amount.toFixed(1);
+        document.getElementById('blendMode').value = settings.blendSettings.mode;
+        document.getElementById('blendAmount').value = settings.blendSettings.amount;
+        document.getElementById('blendAmountValue').textContent = settings.blendSettings.amount.toFixed(1);
         
         // Update secondary character set dropdown
         const currentCharSet2 = charSets.find(set => ASCII_RAMPS[set] === currentRamp2) || 'blocks';

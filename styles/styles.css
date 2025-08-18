@@ -49,7 +49,7 @@ body {
     border: 1px solid #333;
     cursor: ew-resize;
     z-index: 1000;
-    border-radius: 1px;
+    border-radius: 3px;
     pointer-events: auto;
 }
 
@@ -294,4 +294,86 @@ input[type="range"]::-moz-range-track {
     height: 20px;
     fill: #333;
     transition: fill 0.2s ease;
+}
+
+#download-container {
+    position: relative;
+}
+
+#download-btn {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+#download-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: #fff;
+}
+
+#download-btn:hover svg {
+    fill: #fff;
+}
+
+#download-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: #333;
+    transition: fill 0.2s ease;
+}
+
+.download-menu {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 4px;
+    min-width: 140px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+}
+
+.download-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+.download-option {
+    padding: 10px 15px;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #222;
+    transition: all 0.2s ease;
+}
+
+.download-option:last-child {
+    border-bottom: none;
+}
+
+.download-option:hover {
+    background: #222;
+    color: #fff;
+}
+
+.download-option:first-child {
+    border-radius: 4px 4px 0 0;
+}
+
+.download-option:last-child {
+    border-radius: 0 0 4px 4px;
 }
