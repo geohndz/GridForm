@@ -98,6 +98,9 @@ function setup() {
     setupDownloadButton();
     setupResizeHandling();
     setupTooltips();
+    
+    // Set initial button group position
+    updateButtonGroupPosition();
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
@@ -177,6 +180,9 @@ function setupResizeHandling() {
         // Update handle position
         resizeHandle.style.right = (clampedWidth - 4.5) + 'px';
 
+        // Update button group position to stay centered in the canvas area
+        updateButtonGroupPosition();
+
         e.preventDefault();
     });
 
@@ -205,7 +211,24 @@ function setupResizeHandling() {
     });
 
     // Update handle position on window resize
-    window.addEventListener('resize', updateHandlePosition);
+    window.addEventListener('resize', () => {
+        updateHandlePosition();
+        updateButtonGroupPosition();
+    });
+}
+
+function updateButtonGroupPosition() {
+    const buttonGroup = document.getElementById('button-group');
+    const controlsPanel = document.getElementById('controls');
+    const controlsWidth = controlsPanel.offsetWidth;
+    const canvasAreaWidth = window.innerWidth - controlsWidth;
+    
+    // Calculate the center of the canvas area (left side of the viewport)
+    const canvasCenter = canvasAreaWidth / 2;
+    
+    // Position the button group at the center of the canvas area
+    buttonGroup.style.left = canvasCenter + 'px';
+    buttonGroup.style.transform = 'translateX(-50%)';
 }
 
 function draw() {
