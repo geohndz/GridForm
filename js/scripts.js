@@ -194,6 +194,9 @@ function setupResizeHandling() {
             controlsPanel.classList.remove('resizing');
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
+            
+            // Reset border color when resizing ends
+            controlsPanel.style.borderLeftColor = '#333';
         }
     });
 
