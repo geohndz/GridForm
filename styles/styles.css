@@ -185,6 +185,31 @@ body {
     border-bottom: none;
 }
 
+.performance-info {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-accent);
+}
+
+.performance-info small {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+}
+
+.performance-warning {
+    margin-top: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.performance-warning small {
+    color: #ff6b6b;
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+}
+
 h3 {
     margin: 0 0 var(--spacing-lg) 0;
     color: var(--text-primary);

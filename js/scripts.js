@@ -33,8 +33,13 @@ let gridCols, gridRows;  // Grid dimensions (columns and rows)
 // Interactive effects state
 let mousePos = { x: 0.5, y: 0.5 }; // Normalized mouse position (0-1 range)
 let clickEffects = [];              // Array of active click ripple effects
-let cellularGrid = [];              // 2D array for cellular automata patterns
 let voronoiPoints = [];             // Array of points for Voronoi pattern generation
+
+// Performance optimization variables
+let frameCount = 0;      // Frame counter for performance monitoring
+let lastFrameTime = 0;   // Time of last frame for FPS calculation
+let targetFPS = 60;      // Target frame rate
+let frameInterval = 1000 / targetFPS; // Time between frames in milliseconds
 
 // UI resize functionality variables
 let isResizing = false;    // Whether user is currently resizing the controls panel
@@ -45,8 +50,8 @@ let resizeStartWidth = 0;  // Controls panel width when resize started
 let isPaused = false;      // Whether animation is paused
 let speedMultiplier = 1.0; // Animation speed multiplier (0.5x, 1x, 2x, etc.)
 
-// All available pattern types for morphing and randomization
-const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
+// All available pattern types for morphing and randomization (removed cellular)
+const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'voronoi', 'tunnel', 'mosaic'];
 
 // Main application settings object - contains all user-configurable parameters
 let settings = {
@@ -111,8 +116,7 @@ function setup() {
     gridCols = settings.gridCols;
     gridRows = settings.gridRows;
 
-    // Initialize special pattern systems
-    initCellular();  // Set up cellular automata grid
+    // Initialize special pattern systems (removed cellular)
     initVoronoi();   // Set up Voronoi pattern points
 
     // Set up all UI components and event handlers
@@ -282,6 +286,14 @@ function updateButtonGroupPosition() {
  * Renders the ASCII art grid with all patterns, effects, and animations
  */
 function draw() {
+    // Performance optimization: frame rate limiting
+    const currentTime = Date.now();
+    if (currentTime - lastFrameTime < frameInterval) {
+        return; // Skip frame if too soon
+    }
+    lastFrameTime = currentTime;
+    frameCount++;
+
     // Clear canvas with black background
     background(0);
     
@@ -290,6 +302,9 @@ function draw() {
 
     // Update interactive effects (click ripples, etc.)
     updateInteractiveEffects();
+    
+    // Performance monitoring
+    monitorPerformance();
 
     // Configure text rendering
     textAlign(CENTER, CENTER);
@@ -315,7 +330,99 @@ function draw() {
 
     textSize(actualCharSize);
 
-    // Render each character in the grid
+    // Performance optimization: pre-calculate rotation settings
+    let needsRotation = (settings.pattern1.rotation && !settings.pattern2.enabled) || 
+                       (settings.pattern2.enabled && (settings.pattern1.rotation || settings.pattern2.rotation));
+
+    // Performance optimization: batch similar operations
+    if (needsRotation) {
+        // Render with rotation (slower path)
+        renderGridWithRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize);
+    } else {
+        // Render without rotation (fast path)
+        renderGridWithoutRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize);
+    }
+}
+
+/**
+ * Optimized rendering function for grids without character rotation
+ * This is the fast path that avoids expensive push/pop/translate/rotate operations
+ */
+function renderGridWithoutRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize) {
+    // Pre-calculate common values
+    let needsGlow = settings.pattern1.glow || (settings.pattern2.enabled && settings.pattern2.glow);
+    
+    for (let x = 0; x < gridCols; x++) {
+        for (let y = 0; y < gridRows; y++) {
+            // Calculate pixel position for this grid cell
+            let xPos = startX + (x + 0.5) * actualCharWidth;
+            let yPos = startY + (y + 0.5) * actualCharHeight;
+
+            // Calculate primary pattern value (0-1 range)
+            let value1 = getPatternValue(x, y, settings.pattern1, time);
+
+            // Initialize final values with primary pattern
+            let finalValue = value1;
+            let finalColor = settings.pattern1.color;
+            let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
+            let glowIntensity2 = 0;
+            let useRamp1 = true;
+
+            // Add secondary pattern if enabled (pattern blending)
+            if (settings.pattern2.enabled) {
+                let value2 = getPatternValue(x, y, settings.pattern2, time);
+                finalValue = blendValues(value1, value2, settings.blendSettings.mode, settings.blendSettings.amount);
+                glowIntensity2 = settings.pattern2.glow ? value2 : 0;
+
+                // Blend colors from both patterns
+                finalColor = blendColors(
+                    settings.pattern1.color,
+                    settings.pattern2.color,
+                    settings.blendSettings.mode,
+                    value1,
+                    value2,
+                    settings.blendSettings.amount
+                );
+
+                // Decide which character set to use based on blend strength
+                let blendStrength = value1 * value2 * settings.blendSettings.amount;
+                useRamp1 = blendStrength < 0.5;
+            }
+
+            // Apply interactive effects (mouse hover, clicks, etc.)
+            if (settings.interactive.enabled) {
+                finalValue = applyInteractiveEffect(x, y, finalValue);
+            }
+
+            // Apply glow effect if needed
+            if (needsGlow) {
+                let maxGlowIntensity = Math.max(glowIntensity1, glowIntensity2);
+                if (maxGlowIntensity > 0) {
+                    let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7);
+                    applyGlow(finalColor, enhancedGlowIntensity, actualCharSize);
+                }
+            }
+
+            // Set fill color
+            fill(finalColor);
+
+            // Convert pattern value to ASCII character using appropriate character set
+            let selectedRamp = useRamp1 ? currentRamp1 : currentRamp2;
+            let charIndex = Math.floor(map(finalValue, 0, 1, 0, selectedRamp.length - 1));
+            charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
+            let char = selectedRamp[charIndex];
+
+            // Draw character without rotation (fast)
+            text(char, xPos, yPos);
+        }
+    }
+}
+
+/**
+ * Rendering function for grids with character rotation
+ * This is the slower path that handles rotation
+ */
+function renderGridWithRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize) {
     for (let x = 0; x < gridCols; x++) {
         for (let y = 0; y < gridRows; y++) {
             // Calculate pixel position for this grid cell
@@ -361,15 +468,14 @@ function draw() {
                 finalValue = applyInteractiveEffect(x, y, finalValue);
             }
 
-            // Apply glow effect BEFORE setting fill and drawing text
+            // Apply glow effect if needed
             let maxGlowIntensity = Math.max(glowIntensity1, glowIntensity2);
             if (maxGlowIntensity > 0) {
-                // Enhance the glow intensity based on the pattern value
-                let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7); // Use power curve to make mid-values more visible
+                let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7);
                 applyGlow(finalColor, enhancedGlowIntensity, actualCharSize);
             }
 
-            // Set fill color AFTER applying glow
+            // Set fill color
             fill(finalColor);
 
             // Convert pattern value to ASCII character using appropriate character set
@@ -385,7 +491,7 @@ function draw() {
                 rotationAngle = finalValue * TWO_PI + (x + y) * 0.1 + time * 2;
             }
 
-            // Draw character with or without rotation
+            // Draw character with rotation
             if (rotationAngle !== 0) {
                 push();
                 translate(xPos, yPos);
@@ -404,11 +510,26 @@ function draw() {
  * Currently handles decay of click ripple effects
  */
 function updateInteractiveEffects() {
+    // Performance optimization: only update if interactive effects are enabled
+    if (!settings.interactive.enabled) return;
+    
     // Decay click effects and remove expired ones
     clickEffects = clickEffects.filter(effect => {
         effect.life -= 0.016; // Reduce life by one frame (~60fps)
         return effect.life > 0; // Keep only effects that are still alive
     });
+}
+
+/**
+ * Performance monitoring function
+ * Logs performance metrics every 60 frames
+ */
+function monitorPerformance() {
+    if (frameCount % 60 === 0) {
+        const currentTime = Date.now();
+        const fps = 1000 / (currentTime - lastFrameTime);
+        console.log(`Performance: FPS: ${fps.toFixed(1)}, Grid: ${gridCols}x${gridRows}, Rotation: ${settings.pattern1.rotation || settings.pattern2.rotation}`);
+    }
 }
 
 /**
@@ -419,6 +540,9 @@ function updateInteractiveEffects() {
  * @returns {number} Modified pattern value with interactive effects applied
  */
 function applyInteractiveEffect(x, y, baseValue) {
+    // Performance optimization: early return if no interactive effects
+    if (!settings.interactive.enabled) return baseValue;
+    
     // Convert grid coordinates to normalized coordinates (0-1 range)
     let normalizedX = x / gridCols;
     let normalizedY = y / gridRows;
@@ -455,14 +579,17 @@ function applyInteractiveEffect(x, y, baseValue) {
         }
     }
 
-    // Apply click ripple effects
-    for (let clickEffect of clickEffects) {
-        let clickDistance = dist(normalizedX, normalizedY, clickEffect.x, clickEffect.y);
-        if (clickDistance < clickEffect.radius) {
-            // Calculate effect strength based on distance and remaining life
-            let clickStrength = (1 - clickDistance / clickEffect.radius) * clickEffect.strength * (clickEffect.life / clickEffect.maxLife);
-            // Create expanding ripple wave
-            effect += sin(clickDistance * 15 - (clickEffect.maxLife - clickEffect.life) * 3) * clickStrength;
+    // Performance optimization: only process click effects if there are any
+    if (clickEffects.length > 0) {
+        // Apply click ripple effects
+        for (let clickEffect of clickEffects) {
+            let clickDistance = dist(normalizedX, normalizedY, clickEffect.x, clickEffect.y);
+            if (clickDistance < clickEffect.radius) {
+                // Calculate effect strength based on distance and remaining life
+                let clickStrength = (1 - clickDistance / clickEffect.radius) * clickEffect.strength * (clickEffect.life / clickEffect.maxLife);
+                // Create expanding ripple wave
+                effect += sin(clickDistance * 15 - (clickEffect.maxLife - clickEffect.life) * 3) * clickStrength;
+            }
         }
     }
 
@@ -533,30 +660,24 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'mandelbrot':
-            // Create animated Mandelbrot set pattern
+            // Create animated Mandelbrot set pattern (optimized)
             let zx = (normalizedX - 0.5) * 4;
             let zy = (normalizedY - 0.5) * 4;
             let cx = zx + sin(time * pattern.speed * 50) * 0.3;
             let cy = zy + cos(time * pattern.speed * 30) * 0.3;
-            value = mandelbrotIteration(cx, cy, 20) / 20;
+            // Performance optimization: reduce iterations based on target FPS
+            let mandelbrotIterations = targetFPS <= 30 ? 10 : 15;
+            value = mandelbrotIteration(cx, cy, mandelbrotIterations) / mandelbrotIterations;
             break;
 
         case 'julia':
-            // Create animated Julia set pattern
+            // Create animated Julia set pattern (optimized)
             let jx = (normalizedX - 0.5) * 4;
             let jy = (normalizedY - 0.5) * 4;
             let juliaC = { x: sin(time * pattern.speed * 100) * 0.8, y: cos(time * pattern.speed * 70) * 0.8 };
-            value = juliaIteration(jx, jy, juliaC, 20) / 20;
-            break;
-
-        case 'cellular':
-            // Create cellular automata pattern (Conway's Game of Life)
-            if (floor(time * pattern.speed * 100) % 30 === 0) {
-                updateCellular();
-            }
-            let cellX = floor(normalizedX * 40);
-            let cellY = floor(normalizedY * 30);
-            value = (cellularGrid[cellY] && cellularGrid[cellY][cellX]) ? 1 : -1;
+            // Performance optimization: reduce iterations based on target FPS
+            let juliaIterations = targetFPS <= 30 ? 10 : 15;
+            value = juliaIteration(jx, jy, juliaC, juliaIterations) / juliaIterations;
             break;
 
         case 'voronoi':
@@ -619,55 +740,6 @@ function juliaIteration(zx, zy, c, maxIter) {
         zx = temp;
     }
     return maxIter; // Point is in the set
-}
-
-/**
- * Initializes the cellular automata grid with random cells
- * Creates a 40x30 grid where each cell has a 40% chance of being alive
- */
-function initCellular() {
-    cellularGrid = [];
-    for (let y = 0; y < 30; y++) {
-        cellularGrid[y] = [];
-        for (let x = 0; x < 40; x++) {
-            cellularGrid[y][x] = Math.random() > 0.6; // 40% chance of being alive
-        }
-    }
-}
-
-/**
- * Updates the cellular automata grid using Conway's Game of Life rules
- * Rules: Live cells with 2-3 neighbors survive, dead cells with exactly 3 neighbors become alive
- */
-function updateCellular() {
-    let newGrid = [];
-    for (let y = 0; y < 30; y++) {
-        newGrid[y] = [];
-        for (let x = 0; x < 40; x++) {
-            // Count live neighbors (8 surrounding cells)
-            let neighbors = 0;
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    if (dx === 0 && dy === 0) continue; // Skip the cell itself
-                    let nx = x + dx;
-                    let ny = y + dy;
-                    if (nx >= 0 && nx < 40 && ny >= 0 && ny < 30) {
-                        if (cellularGrid[ny][nx]) neighbors++;
-                    }
-                }
-            }
-            
-            // Apply Conway's Game of Life rules
-            if (cellularGrid[y][x]) {
-                // Live cell: survives if it has 2 or 3 neighbors
-                newGrid[y][x] = neighbors === 2 || neighbors === 3;
-            } else {
-                // Dead cell: becomes alive if it has exactly 3 neighbors
-                newGrid[y][x] = neighbors === 3;
-            }
-        }
-    }
-    cellularGrid = newGrid;
 }
 
 /**
@@ -831,38 +903,59 @@ function blendColors(color1Hex, color2Hex, mode, value1, value2, amount) {
 function applyGlow(color, intensity, charSize) {
     if (intensity <= 0) return;
 
+    // Performance optimization: check glow quality setting
+    const glowQuality = document.getElementById('glowQualitySelect')?.value || 'medium';
+    if (glowQuality === 'low') return; // Skip glow entirely for low quality
+
+    // Performance optimization: cache color parsing
+    let r, g, b;
+    
     // Parse color to extract RGB values
     let colorMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (!colorMatch) {
         // Handle hex colors if rgb parsing fails
         let hexMatch = color.match(/#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})/);
         if (hexMatch) {
-            let r = parseInt(hexMatch[1], 16);
-            let g = parseInt(hexMatch[2], 16);
-            let b = parseInt(hexMatch[3], 16);
-            colorMatch = [null, r, g, b];
+            r = parseInt(hexMatch[1], 16);
+            g = parseInt(hexMatch[2], 16);
+            b = parseInt(hexMatch[3], 16);
         } else {
             return; // Skip glow if color parsing fails
         }
+    } else {
+        r = parseInt(colorMatch[1]);
+        g = parseInt(colorMatch[2]);
+        b = parseInt(colorMatch[3]);
     }
 
-    let r = parseInt(colorMatch[1]);
-    let g = parseInt(colorMatch[2]);
-    let b = parseInt(colorMatch[3]);
+    // Performance optimization: adjust glow based on quality setting
+    let glowSize, glowAlpha;
+    switch (glowQuality) {
+        case 'low':
+            return; // Already handled above
+        case 'medium':
+            glowSize = intensity * charSize * 1.5;  // Reduced for medium quality
+            glowAlpha = Math.min(intensity * 1.0, 0.6);  // Reduced for medium quality
+            break;
+        case 'high':
+            glowSize = intensity * charSize * 2.5;  // Full quality
+            glowAlpha = Math.min(intensity * 1.3, 0.9);  // Full quality
+            break;
+        default:
+            glowSize = intensity * charSize * 2.0;  // Default medium
+            glowAlpha = Math.min(intensity * 1.2, 0.8);
+    }
 
-    // Calculate glow parameters
-    let glowSize = intensity * charSize * 3.0;  // Glow blur radius
-    let glowAlpha = Math.min(intensity * 1.5, 1.0);  // Glow opacity (capped at 1.0)
-
-    push();
-    // Apply shadow-based glow effect
-    drawingContext.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
-    drawingContext.shadowBlur = glowSize;
-
-    // Ensure no shadow offset for centered glow
-    drawingContext.shadowOffsetX = 0;
-    drawingContext.shadowOffsetY = 0;
-    pop();
+    // Performance optimization: only apply glow if intensity is significant
+    if (intensity > 0.1) {
+        push();
+        // Apply shadow-based glow effect
+        drawingContext.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
+        drawingContext.shadowBlur = glowSize;
+        drawingContext.shadowOffsetX = 0;
+        drawingContext.shadowOffsetY = 0;
+        pop();
+    }
 }
 
 /**
@@ -1157,6 +1250,40 @@ function setupControls() {
             blendAmountValueElement.textContent = e.target.value;
         }
     });
+
+    // Performance Settings
+    safeAddEventListener('targetFpsSelect', 'change', (e) => {
+        targetFPS = parseInt(e.target.value);
+        frameInterval = 1000 / targetFPS;
+        console.log(`Target FPS changed to: ${targetFPS}`);
+    });
+
+    safeAddEventListener('glowQualitySelect', 'change', (e) => {
+        const quality = e.target.value;
+        // Update glow settings based on quality selection
+        switch (quality) {
+            case 'low':
+                // Disable glow effects for maximum performance
+                settings.pattern1.glow = false;
+                settings.pattern2.glow = false;
+                // Update UI checkboxes
+                document.getElementById('pattern1Glow').checked = false;
+                document.getElementById('pattern2Glow').checked = false;
+                break;
+            case 'medium':
+                // Keep current glow settings
+                break;
+            case 'high':
+                // Enable glow effects for best quality
+                settings.pattern1.glow = true;
+                settings.pattern2.glow = true;
+                // Update UI checkboxes
+                document.getElementById('pattern1Glow').checked = true;
+                document.getElementById('pattern2Glow').checked = true;
+                break;
+        }
+        console.log(`Glow quality changed to: ${quality}`);
+    });
 }
 
 function setupDropdowns() {
@@ -1164,6 +1291,7 @@ function setupDropdowns() {
         'displayHeader',
         'pattern1Header',
         'pattern2Header',
+        'performanceHeader',
         'interactiveHeader'
     ];
 
@@ -1171,6 +1299,7 @@ function setupDropdowns() {
         'displayContent',
         'pattern1Content',
         'pattern2Content',
+        'performanceContent',
         'interactiveContent'
     ];
 
@@ -1232,7 +1361,7 @@ function setupRandomizeButton() {
 
     randomizeBtn.addEventListener('click', () => {
         // Randomize pattern types
-        const patternTypes = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
+        const patternTypes = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'voronoi', 'tunnel', 'mosaic'];
         const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
 
         // Randomize primary pattern

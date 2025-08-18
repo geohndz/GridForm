@@ -166,6 +166,9 @@
                         <input type="checkbox" id="pattern1Rotation" style="margin-right: 8px; accent-color: #ffffff;">
                         Character Rotation
                     </label>
+                    <div class="performance-warning">
+                        <small>⚠️ Character rotation significantly impacts performance</small>
+                    </div>
 
                     <label>Pattern Type</label>
                     <select id="pattern1Type">
@@ -178,7 +181,6 @@
                         <option value="plasma">Plasma</option>
                         <option value="mandelbrot">Mandelbrot</option>
                         <option value="julia">Julia Set</option>
-                        <option value="cellular">Cellular Automata</option>
                         <option value="voronoi">Voronoi</option>
                         <option value="tunnel">Tunnel</option>
                         <option value="mosaic">Mosaic</option>
@@ -235,6 +237,9 @@
                                 style="margin-right: 8px; accent-color: #ffffff;">
                             Character Rotation
                         </label>
+                        <div class="performance-warning">
+                            <small>⚠️ Character rotation significantly impacts performance</small>
+                        </div>
 
                         <label>Pattern Type</label>
                         <select id="pattern2Type">
@@ -247,7 +252,6 @@
                             <option value="plasma">Plasma</option>
                             <option value="mandelbrot">Mandelbrot</option>
                             <option value="julia">Julia Set</option>
-                            <option value="cellular">Cellular Automata</option>
                             <option value="voronoi">Voronoi</option>
                             <option value="tunnel">Tunnel</option>
                             <option value="mosaic">Mosaic</option>
@@ -291,6 +295,32 @@
                         <label>Secondary Opacity</label>
                         <input type="range" id="blendAmount" min="0" max="1" value="0.5" step="0.1">
                         <div class="value-display" id="blendAmountValue">0.5</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="dropdown-header" id="performanceHeader">
+                    <span>Performance Settings</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="performanceContent">
+                    <label>Target Frame Rate</label>
+                    <select id="targetFpsSelect">
+                        <option value="30">30 FPS (Better Performance)</option>
+                        <option value="60" selected>60 FPS (Smooth Animation)</option>
+                        <option value="120">120 FPS (High Performance)</option>
+                    </select>
+
+                    <label>Glow Quality</label>
+                    <select id="glowQualitySelect">
+                        <option value="low">Low (Fastest)</option>
+                        <option value="medium" selected>Medium (Balanced)</option>
+                        <option value="high">High (Best Quality)</option>
+                    </select>
+
+                    <div class="performance-info">
+                        <small>Performance Tip: Disable character rotation for much better performance</small>
                     </div>
                 </div>
             </div>
