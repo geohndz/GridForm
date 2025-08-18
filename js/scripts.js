@@ -1,11 +1,3 @@
-// Add once (top-level is fine):
-window.addEventListener('error', ev => {
-    console.error('[window.error]', ev.message, ev.filename, ev.lineno, ev.colno, ev.error);
-  });
-  window.addEventListener('unhandledrejection', ev => {
-    console.error('[unhandledrejection]', ev.reason);
-  });
-
 // ASCII grayscale ramp - from darkest to lightest
 const ASCII_RAMPS = {
     blocks: " ░▒▓▌▍▎▏▊▋█",
@@ -51,6 +43,7 @@ let settings = {
     gridCols: 80,
     gridRows: 50,
     charSize: 12,
+    charSpacing: 1.0,
     pattern1: {
         type: 'waves',
         speed: 0.01,
@@ -85,19 +78,19 @@ function setup() {
     canvas = createCanvas(800, 500); // Start with default size
     updateCanvasSize(); // Then update to fit grid
     canvas.parent('canvas-container');
-    
+
     textAlign(CENTER, CENTER);
     noSmooth();
-    
+
     gridCols = settings.gridCols;
     gridRows = settings.gridRows;
-    
+
     // Initialize cellular automata
     initCellular();
-    
+
     // Initialize Voronoi points
     initVoronoi();
-    
+
     setupControls();
     setupPlayPauseButton();
     setupSpeedButton();
@@ -123,22 +116,22 @@ function setup() {
 
 function updateCanvasSize() {
     // Calculate required canvas size based on grid and character size
-    let requiredWidth = gridCols * baseCharWidth * (settings.charSize / 12); // 12 is the default char size
-    let requiredHeight = gridRows * baseCharHeight * (settings.charSize / 12);
-    
+    let requiredWidth = gridCols * baseCharWidth * (settings.charSize / 12) * settings.charSpacing;
+    let requiredHeight = gridRows * baseCharHeight * (settings.charSize / 12) * settings.charSpacing;
+
     // Constrain to maximum dimensions
     let maxWidth = 800;
     let maxHeight = 500;
-    
+
     // Calculate scale factor if needed
     let scaleX = maxWidth / requiredWidth;
     let scaleY = maxHeight / requiredHeight;
     let scale = Math.min(scaleX, scaleY, 1.0);
-    
+
     // Calculate final canvas dimensions
     let finalWidth = Math.min(requiredWidth, maxWidth);
     let finalHeight = Math.min(requiredHeight, maxHeight);
-    
+
     // Only resize if dimensions changed significantly
     if (Math.abs(width - finalWidth) > 5 || Math.abs(height - finalHeight) > 5) {
         resizeCanvas(finalWidth, finalHeight);
@@ -148,69 +141,69 @@ function updateCanvasSize() {
 function setupResizeHandling() {
     const resizeHandle = document.getElementById('resize-handle');
     const controlsPanel = document.getElementById('controls');
-    
+
     // Update handle position initially
     function updateHandlePosition() {
         const controlsWidth = controlsPanel.offsetWidth;
         resizeHandle.style.right = (controlsWidth - 4.5) + 'px'; // Center on the 1px border
     }
-    
+
     updateHandlePosition();
-    
+
     resizeHandle.addEventListener('mousedown', (e) => {
         isResizing = true;
         resizeStartX = e.clientX;
         resizeStartWidth = controlsPanel.offsetWidth;
-        
+
         resizeHandle.classList.add('dragging');
         controlsPanel.classList.add('resizing');
         document.body.style.cursor = 'ew-resize';
         document.body.style.userSelect = 'none';
-        
+
         e.preventDefault();
     });
-    
+
     document.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
-        
+
         const deltaX = resizeStartX - e.clientX;
         const newWidth = resizeStartWidth + deltaX;
         const minWidth = 250;
         const maxWidth = window.innerWidth * 0.3;
-        
+
         const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
         controlsPanel.style.width = clampedWidth + 'px';
-        
+
         // Update handle position
         resizeHandle.style.right = (clampedWidth - 4.5) + 'px';
-        
+
         e.preventDefault();
     });
-    
+
     document.addEventListener('mouseup', () => {
         if (isResizing) {
             isResizing = false;
-            
+
             resizeHandle.classList.remove('dragging');
             controlsPanel.classList.remove('resizing');
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
         }
     });
-    
+
     // Handle hover states
     resizeHandle.addEventListener('mouseenter', () => {
         if (!isResizing) {
             controlsPanel.style.borderLeftColor = '#fff';
         }
     });
-    
+
     resizeHandle.addEventListener('mouseleave', () => {
         if (!isResizing) {
             controlsPanel.style.borderLeftColor = '#333';
         }
     });
-    
+
     // Update handle position on window resize
     window.addEventListener('resize', updateHandlePosition);
 }
@@ -228,17 +221,17 @@ function draw() {
     // Calculate grid dimensions in pixels
     let gridPixelWidth = gridCols * baseCharWidth;
     let gridPixelHeight = gridRows * baseCharHeight;
-    
+
     // Calculate scale factor to fit within canvas bounds
     let scaleX = width / gridPixelWidth;
     let scaleY = height / gridPixelHeight;
     gridScale = Math.min(scaleX, scaleY, 1.0); // Don't scale up, only down
-    
+
     // Calculate actual character size and spacing
-    let actualCharWidth = baseCharWidth * gridScale;
-    let actualCharHeight = baseCharHeight * gridScale;
+    let actualCharWidth = baseCharWidth * gridScale * settings.charSpacing;
+    let actualCharHeight = baseCharHeight * gridScale * settings.charSpacing;
     let actualCharSize = settings.charSize * gridScale;
-    
+
     // Center the grid in the canvas
     let startX = (width - (gridCols * actualCharWidth)) / 2;
     let startY = (height - (gridRows * actualCharHeight)) / 2;
@@ -337,12 +330,12 @@ function applyInteractiveEffect(x, y, baseValue) {
     let normalizedX = x / gridCols;
     let normalizedY = y / gridRows;
     let effect = 0;
-    
+
     // Mouse effect
     let mouseDistance = dist(normalizedX, normalizedY, mousePos.x, mousePos.y);
     if (mouseDistance < settings.interactive.radius) {
         let strength = (1 - mouseDistance / settings.interactive.radius) * settings.interactive.strength;
-        
+
         switch (settings.interactive.type) {
             case 'ripple':
                 effect += sin(mouseDistance * 20 - time * 5) * strength * 0.3;
@@ -362,7 +355,7 @@ function applyInteractiveEffect(x, y, baseValue) {
                 break;
         }
     }
-    
+
     // Click effects
     for (let clickEffect of clickEffects) {
         let clickDistance = dist(normalizedX, normalizedY, clickEffect.x, clickEffect.y);
@@ -371,7 +364,7 @@ function applyInteractiveEffect(x, y, baseValue) {
             effect += sin(clickDistance * 15 - (clickEffect.maxLife - clickEffect.life) * 3) * clickStrength;
         }
     }
-    
+
     return constrain(baseValue + effect, 0, 1);
 }
 
@@ -379,47 +372,47 @@ function getPatternValue(x, y, pattern, time) {
     let normalizedX = x / gridCols;
     let normalizedY = y / gridRows;
     let value = 0;
-    
+
     switch (pattern.type) {
         case 'waves':
-            value = (sin(normalizedX * TWO_PI * 5 + time * pattern.speed * 100) + 
-                    sin(normalizedY * TWO_PI * 3 + time * pattern.speed * 80)) / 2;
+            value = (sin(normalizedX * TWO_PI * 5 + time * pattern.speed * 100) +
+                sin(normalizedY * TWO_PI * 3 + time * pattern.speed * 80)) / 2;
             break;
-            
+
         case 'ripples':
             let centerX = 0.5;
             let centerY = 0.5;
             let distance = dist(normalizedX, normalizedY, centerX, centerY);
             value = sin(distance * TWO_PI * 10 - time * pattern.speed * 200);
             break;
-            
+
         case 'noise':
             value = noise(normalizedX * pattern.scale * 100, normalizedY * pattern.scale * 100, time * pattern.speed * 10) * 2 - 1;
             break;
-            
+
         case 'spiral':
             let angle = atan2(normalizedY - 0.5, normalizedX - 0.5);
             let radius = dist(normalizedX, normalizedY, 0.5, 0.5);
             value = sin(angle * 3 + radius * 20 + time * pattern.speed * 100);
             break;
-            
+
         case 'checkerboard':
             let checkX = floor(normalizedX * pattern.scale * 100);
             let checkY = floor(normalizedY * pattern.scale * 100);
             value = ((checkX + checkY + floor(time * pattern.speed * 100)) % 2) * 2 - 1;
             break;
-            
+
         case 'stripes':
             value = sin((normalizedX + normalizedY) * pattern.scale * 200 + time * pattern.speed * 100);
             break;
-            
+
         case 'plasma':
             value = (sin(normalizedX * 16 + time * pattern.speed * 80) +
-                    sin(normalizedY * 8 + time * pattern.speed * 60) +
-                    sin((normalizedX + normalizedY) * 16 + time * pattern.speed * 40) +
-                    sin(sqrt(normalizedX * normalizedX + normalizedY * normalizedY) * 8 + time * pattern.speed * 120)) / 4;
+                sin(normalizedY * 8 + time * pattern.speed * 60) +
+                sin((normalizedX + normalizedY) * 16 + time * pattern.speed * 40) +
+                sin(sqrt(normalizedX * normalizedX + normalizedY * normalizedY) * 8 + time * pattern.speed * 120)) / 4;
             break;
-            
+
         case 'mandelbrot':
             let zx = (normalizedX - 0.5) * 4;
             let zy = (normalizedY - 0.5) * 4;
@@ -427,14 +420,14 @@ function getPatternValue(x, y, pattern, time) {
             let cy = zy + cos(time * pattern.speed * 30) * 0.3;
             value = mandelbrotIteration(cx, cy, 20) / 20;
             break;
-            
+
         case 'julia':
             let jx = (normalizedX - 0.5) * 4;
             let jy = (normalizedY - 0.5) * 4;
             let juliaC = { x: sin(time * pattern.speed * 100) * 0.8, y: cos(time * pattern.speed * 70) * 0.8 };
             value = juliaIteration(jx, jy, juliaC, 20) / 20;
             break;
-            
+
         case 'cellular':
             if (floor(time * pattern.speed * 100) % 30 === 0) {
                 updateCellular();
@@ -443,18 +436,18 @@ function getPatternValue(x, y, pattern, time) {
             let cellY = floor(normalizedY * 30);
             value = (cellularGrid[cellY] && cellularGrid[cellY][cellX]) ? 1 : -1;
             break;
-            
+
         case 'voronoi':
             value = getVoronoiValue(normalizedX, normalizedY, time * pattern.speed);
             break;
-            
+
         case 'tunnel':
             let tunnelAngle = atan2(normalizedY - 0.5, normalizedX - 0.5);
             let tunnelRadius = dist(normalizedX, normalizedY, 0.5, 0.5);
-            value = sin(tunnelAngle * 8 + time * pattern.speed * 100) * 
-                   sin(1 / (tunnelRadius + 0.1) + time * pattern.speed * 50);
+            value = sin(tunnelAngle * 8 + time * pattern.speed * 100) *
+                sin(1 / (tunnelRadius + 0.1) + time * pattern.speed * 50);
             break;
-            
+
         case 'mosaic':
             let mosaicX = floor(normalizedX * pattern.scale * 200);
             let mosaicY = floor(normalizedY * pattern.scale * 200);
@@ -462,7 +455,7 @@ function getPatternValue(x, y, pattern, time) {
             value = (mosaicHash / 500000 - 1) + sin(time * pattern.speed * 100) * 0.3;
             break;
     }
-    
+
     // Normalize to 0-1 range
     return (value + 1) / 2;
 }
@@ -542,17 +535,17 @@ function getVoronoiValue(x, y, timeOffset) {
     for (let point of voronoiPoints) {
         point.x += point.vx;
         point.y += point.vy;
-        
+
         // Bounce off edges
         if (point.x <= 0 || point.x >= 1) point.vx *= -1;
         if (point.y <= 0 || point.y >= 1) point.vy *= -1;
         point.x = constrain(point.x, 0, 1);
         point.y = constrain(point.y, 0, 1);
     }
-    
+
     let minDist = Infinity;
     let secondMinDist = Infinity;
-    
+
     for (let point of voronoiPoints) {
         let d = dist(x, y, point.x, point.y);
         if (d < minDist) {
@@ -562,7 +555,7 @@ function getVoronoiValue(x, y, timeOffset) {
             secondMinDist = d;
         }
     }
-    
+
     return ((secondMinDist - minDist) * 10 + sin(timeOffset * 100)) * 2 - 1;
 }
 
@@ -572,7 +565,7 @@ function hexToRgb(hex) {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
-    } : {r: 255, g: 255, b: 255};
+    } : { r: 255, g: 255, b: 255 };
 }
 
 function hslToHex(h, s, l) {
@@ -589,54 +582,54 @@ function hslToHex(h, s, l) {
 function blendColors(color1Hex, color2Hex, mode, value1, value2, amount) {
     let color1 = hexToRgb(color1Hex);
     let color2 = hexToRgb(color2Hex);
-    
+
     let localBlend = value1 * value2 * amount;
-    
+
     let r, g, b;
-    
+
     switch (mode) {
         case 'add':
             r = constrain(color1.r + (color2.r * localBlend), 0, 255);
             g = constrain(color1.g + (color2.g * localBlend), 0, 255);
             b = constrain(color1.b + (color2.b * localBlend), 0, 255);
             break;
-            
+
         case 'multiply':
             r = lerp(color1.r, (color1.r * color2.r) / 255, localBlend);
             g = lerp(color1.g, (color1.g * color2.g) / 255, localBlend);
             b = lerp(color1.b, (color1.b * color2.b) / 255, localBlend);
             break;
-            
+
         case 'overlay':
             r = lerp(color1.r, color1.r < 128 ? (2 * color1.r * color2.r) / 255 : 255 - (2 * (255 - color1.r) * (255 - color2.r)) / 255, localBlend);
             g = lerp(color1.g, color1.g < 128 ? (2 * color1.g * color2.g) / 255 : 255 - (2 * (255 - color1.g) * (255 - color2.g)) / 255, localBlend);
             b = lerp(color1.b, color1.b < 128 ? (2 * color1.b * color2.b) / 255 : 255 - (2 * (255 - color1.b) * (255 - color2.b)) / 255, localBlend);
             break;
-            
+
         case 'difference':
             r = lerp(color1.r, Math.abs(color1.r - color2.r), localBlend);
             g = lerp(color1.g, Math.abs(color1.g - color2.g), localBlend);
             b = lerp(color1.b, Math.abs(color1.b - color2.b), localBlend);
             break;
-            
+
         case 'screen':
             r = lerp(color1.r, 255 - (((255 - color1.r) * (255 - color2.r)) / 255), localBlend);
             g = lerp(color1.g, 255 - (((255 - color1.g) * (255 - color2.g)) / 255), localBlend);
             b = lerp(color1.b, 255 - (((255 - color1.b) * (255 - color2.b)) / 255), localBlend);
             break;
-            
+
         default:
             r = lerp(color1.r, color2.r, localBlend);
             g = lerp(color1.g, color2.g, localBlend);
             b = lerp(color1.b, color2.b, localBlend);
     }
-    
+
     return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
 }
 
 function applyGlow(color, intensity, charSize) {
     if (intensity <= 0) return;
-    
+
     let colorMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (!colorMatch) {
         // Handle hex colors if rgb parsing fails
@@ -650,20 +643,20 @@ function applyGlow(color, intensity, charSize) {
             return;
         }
     }
-    
+
     let r = parseInt(colorMatch[1]);
     let g = parseInt(colorMatch[2]);
     let b = parseInt(colorMatch[3]);
-    
+
     // Make glow much more visible
     let glowSize = intensity * charSize * 3.0;  // Increased from 0.8 to 3.0
     let glowAlpha = Math.min(intensity * 1.5, 1.0);  // Increased from 0.6 to 1.5 (capped at 1.0)
-    
+
     push();
     // Apply multiple glow layers for stronger effect
     drawingContext.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
     drawingContext.shadowBlur = glowSize;
-    
+
     // Add a second, more intense inner glow
     drawingContext.shadowOffsetX = 0;
     drawingContext.shadowOffsetY = 0;
@@ -672,7 +665,7 @@ function applyGlow(color, intensity, charSize) {
 
 function blendValues(value1, value2, mode, amount) {
     value2 = lerp(0.5, value2, amount);
-    
+
     switch (mode) {
         case 'add':
             return constrain(value1 + value2 - 0.5, 0, 1);
@@ -696,14 +689,14 @@ function mouseMoved() {
         let gridPixelHeight = gridRows * baseCharHeight * gridScale;
         let startX = (width - gridPixelWidth) / 2;
         let startY = (height - gridPixelHeight) / 2;
-        
+
         // Convert mouse position to grid-relative coordinates
         let relativeX = mouseX - startX;
         let relativeY = mouseY - startY;
-        
+
         mousePos.x = relativeX / gridPixelWidth;
         mousePos.y = relativeY / gridPixelHeight;
-        
+
         // Clamp to 0-1 range
         mousePos.x = constrain(mousePos.x, 0, 1);
         mousePos.y = constrain(mousePos.y, 0, 1);
@@ -717,14 +710,14 @@ function mousePressed() {
         let gridPixelHeight = gridRows * baseCharHeight * gridScale;
         let startX = (width - gridPixelWidth) / 2;
         let startY = (height - gridPixelHeight) / 2;
-        
+
         // Convert mouse position to grid-relative coordinates
         let relativeX = mouseX - startX;
         let relativeY = mouseY - startY;
-        
+
         let normalizedX = relativeX / gridPixelWidth;
         let normalizedY = relativeY / gridPixelHeight;
-        
+
         // Only add click effects if within grid bounds
         if (normalizedX >= 0 && normalizedX <= 1 && normalizedY >= 0 && normalizedY <= 1) {
             clickEffects.push({
@@ -742,7 +735,7 @@ function mousePressed() {
 function setupControls() {
     // Setup dropdown functionality
     setupDropdowns();
-    
+
     // Display Settings
     document.getElementById('gridCols').addEventListener('input', (e) => {
         settings.gridCols = parseInt(e.target.value);
@@ -764,11 +757,17 @@ function setupControls() {
         updateCanvasSize();
     });
 
+    document.getElementById('charSpacing').addEventListener('input', (e) => {
+        settings.charSpacing = parseFloat(e.target.value);
+        document.getElementById('charSpacingValue').textContent = e.target.value;
+        updateCanvasSize();
+    });
+
     // Character Set
     document.getElementById('pattern1CharSet').addEventListener('change', (e) => {
         const selectedSet = e.target.value;
         const customInput = document.getElementById('pattern1CustomCharInput');
-        
+
         if (selectedSet === 'custom1') {
             customInput.style.display = 'block';
             const customChars = document.getElementById('pattern1CustomChars').value || " .:-=+*#%@";
@@ -788,7 +787,7 @@ function setupControls() {
     document.getElementById('pattern2CharSet').addEventListener('change', (e) => {
         const selectedSet = e.target.value;
         const customInput = document.getElementById('pattern2CustomCharInput');
-        
+
         if (selectedSet === 'custom2') {
             customInput.style.display = 'block';
             const customChars = document.getElementById('pattern2CustomChars').value || " .:-=+*#%@";
@@ -842,7 +841,7 @@ function setupControls() {
         settings.pattern2.enabled = !settings.pattern2.enabled;
         e.target.classList.toggle('active');
         e.target.textContent = settings.pattern2.enabled ? 'Disable Secondary Pattern' : 'Enable Secondary Pattern';
-        
+
         const pattern2Settings = document.getElementById('pattern2Settings');
         pattern2Settings.style.display = settings.pattern2.enabled ? 'block' : 'none';
     });
@@ -878,10 +877,10 @@ function setupControls() {
         settings.interactive.enabled = !settings.interactive.enabled;
         e.target.classList.toggle('active');
         e.target.textContent = settings.interactive.enabled ? 'Disable Interactive Effects' : 'Enable Interactive Effects';
-        
+
         const interactiveSettings = document.getElementById('interactiveSettings');
         interactiveSettings.style.display = settings.interactive.enabled ? 'block' : 'none';
-        
+
         const canvasContainer = document.getElementById('canvas-container');
         canvasContainer.style.cursor = settings.interactive.enabled ? 'crosshair' : 'default';
     });
@@ -925,7 +924,7 @@ function setupDropdowns() {
 
     const dropdownContents = [
         'displayContent',
-        'pattern1Content', 
+        'pattern1Content',
         'pattern2Content',
         'interactiveContent'
     ];
@@ -942,7 +941,7 @@ function setupDropdowns() {
 
         header.addEventListener('click', () => {
             const isOpen = content.classList.contains('open');
-            
+
             if (isOpen) {
                 // Close this dropdown
                 content.classList.remove('open');
@@ -966,11 +965,11 @@ function setupPlayPauseButton() {
     const playPauseBtn = document.getElementById('play-pause-btn');
     const pauseIcon = playPauseBtn.querySelector('.pause-icon');
     const playIcon = playPauseBtn.querySelector('.play-icon');
-    
+
     playPauseBtn.addEventListener('click', () => {
         isPaused = !isPaused;
         playPauseBtn.classList.toggle('paused', isPaused);
-        
+
         if (isPaused) {
             pauseIcon.style.display = 'none';
             playIcon.style.display = 'block';
@@ -985,23 +984,23 @@ function setupPlayPauseButton() {
 
 function setupRandomizeButton() {
     const randomizeBtn = document.getElementById('randomize-btn');
-    
+
     randomizeBtn.addEventListener('click', () => {
         // Randomize pattern types
         const patternTypes = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
         const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
-        
+
         // Randomize primary pattern
         settings.pattern1.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
         settings.pattern1.speed = Math.random() * 0.049 + 0.001; // 0.001 to 0.05
         settings.pattern1.scale = Math.random() * 0.19 + 0.01; // 0.01 to 0.2
         settings.pattern1.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
         settings.pattern1.glow = Math.random() > 0.5;
-        
+
         // Randomize primary character set
         const selectedCharSet1 = charSets[Math.floor(Math.random() * charSets.length)];
         currentRamp1 = ASCII_RAMPS[selectedCharSet1];
-        
+
         // Maybe enable secondary pattern
         if (Math.random() > 0.4) {
             settings.pattern2.enabled = true;
@@ -1011,15 +1010,15 @@ function setupRandomizeButton() {
             settings.pattern2.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
             settings.pattern2.glow = Math.random() > 0.5;
             settings.blendSettings.amount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
-            
+
             // Randomize secondary character set
             const selectedCharSet2 = charSets[Math.floor(Math.random() * charSets.length)];
             currentRamp2 = ASCII_RAMPS[selectedCharSet2];
-            
+
             const blendModes = ['add', 'multiply', 'overlay', 'difference', 'screen'];
             settings.blendSettings.mode = blendModes[Math.floor(Math.random() * blendModes.length)];
         }
-        
+
         // Reinitialize special patterns if needed
         if (settings.pattern1.type === 'cellular' || settings.pattern2.type === 'cellular') {
             initCellular();
@@ -1027,7 +1026,7 @@ function setupRandomizeButton() {
         if (settings.pattern1.type === 'voronoi' || settings.pattern2.type === 'voronoi') {
             initVoronoi();
         }
-        
+
         // Update UI to reflect changes
         updateUIFromSettings();
     });
@@ -1037,37 +1036,37 @@ function setupDownloadButton() {
     const downloadBtn = document.getElementById('download-btn');
     const downloadMenu = document.getElementById('download-menu');
     const downloadOpts = downloadMenu.querySelectorAll('.download-option');
-  
+
     let menuVisible = false;
     let isSaving = false;
-  
+
     const hideMenu = () => {
         menuVisible = false;
         downloadMenu.classList.remove('show');
     };
-  
+
     downloadBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         menuVisible = !menuVisible;
         downloadMenu.classList.toggle('show', menuVisible);
     });
-  
+
     document.addEventListener('click', (e) => {
         if (!downloadBtn.contains(e.target) && !downloadMenu.contains(e.target)) {
             hideMenu();
         }
     });
-  
+
     downloadOpts.forEach(opt => {
         const handler = (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (isSaving) return;
             isSaving = true;
-  
+
             const format = opt.dataset.format;
-  
+
             setTimeout(() => {
                 try {
                     exportCanvasFile(format);
@@ -1081,7 +1080,7 @@ function setupDownloadButton() {
                 }
             }, 50);
         };
-  
+
         opt.addEventListener('click', handler, { passive: false });
     });
 }
@@ -1091,7 +1090,7 @@ function exportCanvasFile(format) {
     const pattern2Name = settings.pattern2.enabled ? `-${settings.pattern2.type}` : '';
     const base = `gridform-${pattern1Name}${pattern2Name}`;
     const ext = (format === 'jpeg') ? 'jpg' : format;
-  
+
     if (format === 'txt') {
         exportTextFile(base);
         return;
@@ -1109,42 +1108,42 @@ function exportCanvasFile(format) {
 function exportHighResCanvas(filename, ext) {
     // Calculate scale factor for 300 DPI (300/72 = ~4.17x)
     const dpiScale = 300 / 72;
-    
+
     // Create off-screen canvas for high-res rendering
     const offscreenCanvas = document.createElement('canvas');
     const ctx = offscreenCanvas.getContext('2d');
-    
+
     // Use the EXACT same dimensions as the current canvas, just scaled up
     offscreenCanvas.width = Math.floor(width * dpiScale);
     offscreenCanvas.height = Math.floor(height * dpiScale);
-    
+
     // Clear the off-screen canvas
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-    
+
     // Set up text rendering
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
+
     // Use the SAME scaling logic as the main draw() function, just scaled up
     let gridPixelWidth = gridCols * baseCharWidth;
     let gridPixelHeight = gridRows * baseCharHeight;
-    
+
     // Use the same scale calculation as draw(), but with the high-res dimensions
     let scaleX = offscreenCanvas.width / gridPixelWidth;
     let scaleY = offscreenCanvas.height / gridPixelHeight;
     let currentGridScale = Math.min(scaleX, scaleY, dpiScale); // This was the issue - should match draw()
-    
-    let actualCharWidth = baseCharWidth * currentGridScale;
-    let actualCharHeight = baseCharHeight * currentGridScale;
+
+    let actualCharWidth = baseCharWidth * currentGridScale * settings.charSpacing;
+    let actualCharHeight = baseCharHeight * currentGridScale * settings.charSpacing;
     let actualCharSize = settings.charSize * currentGridScale;
-    
+
     // Center the grid exactly like in draw()
     let startX = (offscreenCanvas.width - (gridCols * actualCharWidth)) / 2;
     let startY = (offscreenCanvas.height - (gridRows * actualCharHeight)) / 2;
-    
+
     ctx.font = `${actualCharSize}px monospace`;
-    
+
     // Render the grid at high resolution on off-screen canvas
     for (let x = 0; x < gridCols; x++) {
         for (let y = 0; y < gridRows; y++) {
@@ -1199,10 +1198,10 @@ function exportHighResCanvas(filename, ext) {
                         g = parseInt(colorMatch[2], 16);
                         b = parseInt(colorMatch[3], 16);
                     }
-                    
+
                     let glowSize = enhancedGlowIntensity * actualCharSize * 3.0;
                     let glowAlpha = Math.min(enhancedGlowIntensity * 1.5, 1.0);
-                    
+
                     ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
                     ctx.shadowBlur = glowSize;
                 }
@@ -1234,34 +1233,34 @@ function exportHighResCanvas(filename, ext) {
             }
         }
     }
-    
+
     // Export the off-screen canvas
     try {
         const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
         const quality = ext === 'jpg' ? 0.9 : undefined;
-        
+
         offscreenCanvas.toBlob((blob) => {
             if (!blob) {
                 alert('Export failed');
                 return;
             }
-            
+
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${filename}.${ext}`;
             a.style.display = 'none';
-            
+
             document.body.appendChild(a);
             a.click();
-            
+
             setTimeout(() => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }, 1000);
-            
+
         }, mimeType, quality);
-        
+
     } catch (error) {
         alert('High-res export failed');
     }
@@ -1287,34 +1286,34 @@ function tryManualSave(filename, ext) {
         if (!domCanvas) {
             throw new Error('No canvas element found');
         }
-        
+
         const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
         const dataURL = domCanvas.toDataURL(mimeType, ext === 'jpg' ? 0.9 : undefined);
-        
+
         if (!dataURL || dataURL === 'data:,') {
             throw new Error('Canvas toDataURL failed');
         }
-        
+
         const byteString = atob(dataURL.split(',')[1]);
         const arrayBuffer = new ArrayBuffer(byteString.length);
         const uint8Array = new Uint8Array(arrayBuffer);
-        
+
         for (let i = 0; i < byteString.length; i++) {
             uint8Array[i] = byteString.charCodeAt(i);
         }
-        
+
         const blob = new Blob([arrayBuffer], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `${filename}.${ext}`;
         a.style.display = 'none';
-        
+
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
     } catch (error) {
         alert('Download failed completely. Please try refreshing the page.');
     }
@@ -1358,12 +1357,12 @@ function exportTextFile(filename) {
         a.href = url;
         a.download = filename + '.txt';
         a.style.display = 'none';
-        
+
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
     } catch (error) {
         alert('Text file download failed.');
     }
@@ -1374,46 +1373,46 @@ function setupSpeedButton() {
     const speedMenu = document.getElementById('speed-menu');
     const speedOptions = speedMenu.querySelectorAll('.speed-option');
     const speedText = speedBtn.querySelector('.speed-text');
-    
+
     let menuVisible = false;
     let currentSpeed = 1.0;
-    
+
     const hideMenu = () => {
         menuVisible = false;
         speedMenu.classList.remove('show');
     };
-    
+
     speedBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         menuVisible = !menuVisible;
         speedMenu.classList.toggle('show', menuVisible);
     });
-    
+
     document.addEventListener('click', (e) => {
         if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
             hideMenu();
         }
     });
-    
+
     speedOptions.forEach(option => {
         option.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const speed = parseFloat(option.dataset.speed);
             currentSpeed = speed;
-            
+
             // Update active state
             speedOptions.forEach(opt => opt.classList.remove('active'));
             option.classList.add('active');
-            
+
             // Update button text
             speedText.textContent = speed === 1 ? '1×' : `${speed}×`;
-            
+
             // Apply speed multiplier to animation
             applySpeedMultiplier(speed);
-            
+
             hideMenu();
         });
     });
@@ -1430,36 +1429,36 @@ function setupTooltips() {
         { btn: '#randomize-btn', tooltip: '#randomize-tooltip' },
         { btn: '#download-btn', tooltip: '#download-tooltip' }
     ];
-    
+
     buttons.forEach(({ btn, tooltip }) => {
         const button = document.querySelector(btn);
         const tooltipEl = document.querySelector(tooltip);
-        
+
         if (!button || !tooltipEl) return;
-        
+
         let hoverTimeout;
-        
+
         button.addEventListener('mouseenter', (e) => {
             clearTimeout(hoverTimeout);
             hoverTimeout = setTimeout(() => {
                 const rect = button.getBoundingClientRect();
                 const tooltipRect = tooltipEl.getBoundingClientRect();
-                
+
                 // Position tooltip above button, centered
                 const left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
                 const top = rect.top - tooltipRect.height - 10;
-                
+
                 tooltipEl.style.left = left + 'px';
                 tooltipEl.style.top = top + 'px';
                 tooltipEl.classList.add('show');
             }, 300); // 500ms delay before showing
         });
-        
+
         button.addEventListener('mouseleave', () => {
             clearTimeout(hoverTimeout);
             tooltipEl.classList.remove('show');
         });
-        
+
         // Hide tooltip when button is clicked
         button.addEventListener('click', () => {
             clearTimeout(hoverTimeout);
@@ -1477,21 +1476,21 @@ function updateUIFromSettings() {
     document.getElementById('pattern1ScaleValue').textContent = settings.pattern1.scale.toFixed(3);
     document.getElementById('pattern1Color').value = settings.pattern1.color;
     document.getElementById('pattern1Glow').checked = settings.pattern1.glow;
-    
+
     // Update character set dropdowns
     const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
     const currentCharSet1 = charSets.find(set => ASCII_RAMPS[set] === currentRamp1) || 'blocks';
     document.getElementById('pattern1CharSet').value = currentCharSet1;
-    
+
     // Update secondary pattern UI
     const pattern2Toggle = document.getElementById('pattern2Toggle');
     const pattern2Settings = document.getElementById('pattern2Settings');
-    
+
     if (settings.pattern2.enabled) {
         pattern2Toggle.classList.add('active');
         pattern2Toggle.textContent = 'Disable Secondary Pattern';
         pattern2Settings.style.display = 'block';
-        
+
         document.getElementById('pattern2Type').value = settings.pattern2.type;
         document.getElementById('pattern2Speed').value = settings.pattern2.speed;
         document.getElementById('pattern2SpeedValue').textContent = settings.pattern2.speed.toFixed(3);
@@ -1502,7 +1501,7 @@ function updateUIFromSettings() {
         document.getElementById('blendMode').value = settings.blendSettings.mode;
         document.getElementById('blendAmount').value = settings.blendSettings.amount;
         document.getElementById('blendAmountValue').textContent = settings.blendSettings.amount.toFixed(1);
-        
+
         // Update secondary character set dropdown
         const currentCharSet2 = charSets.find(set => ASCII_RAMPS[set] === currentRamp2) || 'blocks';
         document.getElementById('pattern2CharSet').value = currentCharSet2;
