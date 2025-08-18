@@ -18,6 +18,10 @@ const ASCII_RAMPS = {
     custom: " .:-=+*#%@"
 };
 
+let baseCharWidth = 8;  // Base character width in pixels
+let baseCharHeight = 14; // Base character height in pixels
+let gridScale = 1.0;     // Scale factor for the entire grid
+
 let currentRamp = ASCII_RAMPS.blocks;
 let currentRamp1 = ASCII_RAMPS.blocks;
 let currentRamp2 = ASCII_RAMPS.blocks;
@@ -196,10 +200,30 @@ function draw() {
     textAlign(CENTER, CENTER);
     textSize(settings.charSize);
 
+    // Calculate grid dimensions in pixels
+    let gridPixelWidth = gridCols * baseCharWidth;
+    let gridPixelHeight = gridRows * baseCharHeight;
+    
+    // Calculate scale factor to fit within canvas bounds
+    let scaleX = width / gridPixelWidth;
+    let scaleY = height / gridPixelHeight;
+    gridScale = Math.min(scaleX, scaleY, 1.0); // Don't scale up, only down
+    
+    // Calculate actual character size and spacing
+    let actualCharWidth = baseCharWidth * gridScale;
+    let actualCharHeight = baseCharHeight * gridScale;
+    let actualCharSize = settings.charSize * gridScale;
+    
+    // Center the grid in the canvas
+    let startX = (width - (gridCols * actualCharWidth)) / 2;
+    let startY = (height - (gridRows * actualCharHeight)) / 2;
+
+    textSize(actualCharSize);
+
     for (let x = 0; x < gridCols; x++) {
         for (let y = 0; y < gridRows; y++) {
-            let xPos = (x + 0.5) * (width / gridCols);
-            let yPos = (y + 0.5) * (height / gridRows);
+            let xPos = startX + (x + 0.5) * actualCharWidth;
+            let yPos = startY + (y + 0.5) * actualCharHeight;
 
             // Calculate primary pattern value
             let value1 = getPatternValue(x, y, settings.pattern1, time);
@@ -243,7 +267,7 @@ function draw() {
             if (maxGlowIntensity > 0) {
                 // Enhance the glow intensity based on the pattern value
                 let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7); // Use power curve to make mid-values more visible
-                applyGlow(finalColor, enhancedGlowIntensity, settings.charSize);
+                applyGlow(finalColor, enhancedGlowIntensity, actualCharSize);
             }
 
             // Set fill color AFTER applying glow
@@ -642,21 +666,51 @@ function blendValues(value1, value2, mode, amount) {
 
 function mouseMoved() {
     if (settings.interactive.enabled) {
-        mousePos.x = mouseX / width;
-        mousePos.y = mouseY / height;
+        // Calculate grid dimensions and position
+        let gridPixelWidth = gridCols * baseCharWidth * gridScale;
+        let gridPixelHeight = gridRows * baseCharHeight * gridScale;
+        let startX = (width - gridPixelWidth) / 2;
+        let startY = (height - gridPixelHeight) / 2;
+        
+        // Convert mouse position to grid-relative coordinates
+        let relativeX = mouseX - startX;
+        let relativeY = mouseY - startY;
+        
+        mousePos.x = relativeX / gridPixelWidth;
+        mousePos.y = relativeY / gridPixelHeight;
+        
+        // Clamp to 0-1 range
+        mousePos.x = constrain(mousePos.x, 0, 1);
+        mousePos.y = constrain(mousePos.y, 0, 1);
     }
 }
 
 function mousePressed() {
     if (settings.interactive.enabled && settings.interactive.clickEnabled) {
-        clickEffects.push({
-            x: mouseX / width,
-            y: mouseY / height,
-            life: 3.0,
-            maxLife: 3.0,
-            strength: settings.interactive.strength,
-            radius: settings.interactive.radius
-        });
+        // Calculate grid dimensions and position
+        let gridPixelWidth = gridCols * baseCharWidth * gridScale;
+        let gridPixelHeight = gridRows * baseCharHeight * gridScale;
+        let startX = (width - gridPixelWidth) / 2;
+        let startY = (height - gridPixelHeight) / 2;
+        
+        // Convert mouse position to grid-relative coordinates
+        let relativeX = mouseX - startX;
+        let relativeY = mouseY - startY;
+        
+        let normalizedX = relativeX / gridPixelWidth;
+        let normalizedY = relativeY / gridPixelHeight;
+        
+        // Only add click effects if within grid bounds
+        if (normalizedX >= 0 && normalizedX <= 1 && normalizedY >= 0 && normalizedY <= 1) {
+            clickEffects.push({
+                x: normalizedX,
+                y: normalizedY,
+                life: 3.0,
+                maxLife: 3.0,
+                strength: settings.interactive.strength,
+                radius: settings.interactive.radius
+            });
+        }
     }
 }
 
