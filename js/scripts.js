@@ -1244,21 +1244,24 @@ function exportHighResCanvas(filename, ext) {
                 alert('Export failed');
                 return;
             }
-
+        
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${filename}.${ext}`;
             a.style.display = 'none';
-
+        
             document.body.appendChild(a);
             a.click();
-
+        
+            // Add this line to show the success toast
+            showSuccessToast(`${filename}.${ext}`);
+        
             setTimeout(() => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }, 1000);
-
+        
         }, mimeType, quality);
 
     } catch (error) {
@@ -1360,6 +1363,7 @@ function exportTextFile(filename) {
 
         document.body.appendChild(a);
         a.click();
+        showSuccessToast(filename + '.txt');
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
@@ -1465,6 +1469,36 @@ function setupTooltips() {
             tooltipEl.classList.remove('show');
         });
     });
+}
+
+function showSuccessToast(filename) {
+    const toast = document.getElementById('success-toast');
+    const filenameEl = document.getElementById('toast-filename');
+    const closeBtn = document.getElementById('toast-close');
+    
+    // Set the filename
+    filenameEl.textContent = filename;
+    
+    // Show the toast
+    toast.classList.add('show');
+    
+    // Auto-dismiss after 4 seconds
+    const autoDismissTimeout = setTimeout(() => {
+        hideToast();
+    }, 4000);
+    
+    // Close button handler
+    const closeHandler = () => {
+        clearTimeout(autoDismissTimeout);
+        hideToast();
+        closeBtn.removeEventListener('click', closeHandler);
+    };
+    
+    closeBtn.addEventListener('click', closeHandler);
+    
+    function hideToast() {
+        toast.classList.remove('show');
+    }
 }
 
 function updateUIFromSettings() {
