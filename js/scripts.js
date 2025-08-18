@@ -3,109 +3,131 @@
 // Export formats: PNG, JPEG, GIF (animated), SVG, and text files
 // 
 // ASCII grayscale ramp - from darkest to lightest
+// Each string represents a progression from dark to light characters
 const ASCII_RAMPS = {
-    blocks: " ░▒▓▌▍▎▏▊▋█",
-    ascii: " .:-=+*#%@",
-    hex: " 0123456789ABCDEF",
-    numbers: " 0123456789",
-    letters: " ABCDEFGHIJ",
-    symbols: " !@#$%^&*().",
-    braille: " ⠀⠁⠃⠇⠏⠟⠿⡿⣿",
-    custom: " .:-=+*#%@"
+    blocks: " ░▒▓▌▍▎▏▊▋█",    // Block characters for high contrast
+    ascii: " .:-=+*#%@",      // Standard ASCII characters
+    hex: " 0123456789ABCDEF", // Hexadecimal digits
+    numbers: " 0123456789",   // Decimal digits
+    letters: " ABCDEFGHIJ",   // Alphabetic characters
+    symbols: " !@#$%^&*().",  // Special symbols
+    braille: " ⠀⠁⠃⠇⠏⠟⠿⡿⣿", // Braille patterns
+    custom: " .:-=+*#%@"      // User-defined custom set
 };
 
-let baseCharWidth = 8;  // Base character width in pixels
-let baseCharHeight = 14; // Base character height in pixels
-let gridScale = 1.0;     // Scale factor for the entire grid
+// Character dimensions and scaling
+let baseCharWidth = 8;   // Base character width in pixels (monospace font)
+let baseCharHeight = 14; // Base character height in pixels (monospace font)
+let gridScale = 1.0;     // Scale factor for the entire grid (for responsive sizing)
 
-let currentRamp = ASCII_RAMPS.blocks;
-let currentRamp1 = ASCII_RAMPS.blocks;
-let currentRamp2 = ASCII_RAMPS.blocks;
+// Character sets for primary and secondary patterns
+let currentRamp = ASCII_RAMPS.blocks;  // Legacy variable (deprecated)
+let currentRamp1 = ASCII_RAMPS.blocks; // Character set for primary pattern
+let currentRamp2 = ASCII_RAMPS.blocks; // Character set for secondary pattern
 
-let canvas;
-let time = 0;
-let gridCols, gridRows;
-let mousePos = { x: 0.5, y: 0.5 };
-let clickEffects = [];
-let cellularGrid = [];
-let voronoiPoints = [];
+// Canvas and animation state
+let canvas;              // p5.js canvas reference
+let time = 0;            // Animation time counter (increments each frame)
+let gridCols, gridRows;  // Grid dimensions (columns and rows)
 
-// Resize functionality variables
-let isResizing = false;
-let resizeStartX = 0;
-let resizeStartWidth = 0;
+// Interactive effects state
+let mousePos = { x: 0.5, y: 0.5 }; // Normalized mouse position (0-1 range)
+let clickEffects = [];              // Array of active click ripple effects
+let cellularGrid = [];              // 2D array for cellular automata patterns
+let voronoiPoints = [];             // Array of points for Voronoi pattern generation
 
-let isPaused = false;
+// UI resize functionality variables
+let isResizing = false;    // Whether user is currently resizing the controls panel
+let resizeStartX = 0;      // Mouse X position when resize started
+let resizeStartWidth = 0;  // Controls panel width when resize started
 
-let speedMultiplier = 1.0;
+// Animation control
+let isPaused = false;      // Whether animation is paused
+let speedMultiplier = 1.0; // Animation speed multiplier (0.5x, 1x, 2x, etc.)
 
-// All available pattern types for morphing
+// All available pattern types for morphing and randomization
 const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
 
-// Pattern settings
+// Main application settings object - contains all user-configurable parameters
 let settings = {
-    gridCols: 80,
-    gridRows: 50,
-    charSize: 12,
-    charSpacing: 1.0,
+    // Display settings
+    gridCols: 80,        // Number of columns in the ASCII grid
+    gridRows: 50,        // Number of rows in the ASCII grid
+    charSize: 12,        // Font size for ASCII characters
+    charSpacing: 1.0,    // Spacing multiplier between characters
+    
+    // Primary pattern configuration
     pattern1: {
-        type: 'waves',
-        speed: 0.01,
-        scale: 0.05,
-        color: '#ffffff',
-        glow: false,
-        rotation: false
+        type: 'waves',     // Pattern type (see PATTERN_TYPES)
+        speed: 0.01,       // Animation speed multiplier
+        scale: 0.05,       // Pattern scale/density
+        color: '#ffffff',  // Pattern color (hex)
+        glow: false,       // Whether to apply glow effect
+        rotation: false    // Whether to rotate characters based on pattern value
     },
+    
+    // Secondary pattern configuration (for blending)
     pattern2: {
-        enabled: false,
-        type: 'ripples',
-        speed: 0.02,
-        scale: 0.08,
-        color: '#00ff00',
-        glow: false,
-        rotation: false
+        enabled: false,    // Whether secondary pattern is active
+        type: 'ripples',   // Pattern type
+        speed: 0.02,       // Animation speed multiplier
+        scale: 0.08,       // Pattern scale/density
+        color: '#00ff00',  // Pattern color (hex)
+        glow: false,       // Whether to apply glow effect
+        rotation: false    // Whether to rotate characters
     },
+    
+    // Interactive effects configuration
     interactive: {
-        enabled: false,
-        type: 'ripple',
-        strength: 1.0,
-        radius: 0.2,
-        clickEnabled: true
+        enabled: false,    // Whether interactive effects are active
+        type: 'ripple',    // Effect type: 'ripple', 'attract', 'repel', 'trail', 'distort'
+        strength: 1.0,     // Effect intensity multiplier
+        radius: 0.2,       // Effect radius (normalized 0-1)
+        clickEnabled: true // Whether mouse clicks create ripple effects
     },
+    
+    // Pattern blending configuration
     blendSettings: {
-        mode: 'multiply',
-        amount: 0.5
+        mode: 'multiply',  // Blend mode: 'add', 'multiply', 'overlay', 'difference', 'screen'
+        amount: 0.5        // Blend intensity (0-1)
     }
 };
 
+/**
+ * Main initialization function called by p5.js when the sketch starts
+ * Sets up the canvas, initializes all UI controls, and configures event listeners
+ */
 function setup() {
+    // Create canvas with default size, then resize to fit grid
     canvas = createCanvas(800, 500); // Start with default size
     updateCanvasSize(); // Then update to fit grid
     canvas.parent('canvas-container');
 
+    // Configure text rendering
     textAlign(CENTER, CENTER);
-    noSmooth();
+    noSmooth(); // Disable anti-aliasing for crisp ASCII characters
 
+    // Set grid dimensions from settings
     gridCols = settings.gridCols;
     gridRows = settings.gridRows;
 
-    // Initialize cellular automata
-    initCellular();
+    // Initialize special pattern systems
+    initCellular();  // Set up cellular automata grid
+    initVoronoi();   // Set up Voronoi pattern points
 
-    // Initialize Voronoi points
-    initVoronoi();
-
-    setupControls();
-    setupPlayPauseButton();
-    setupSpeedButton();
-    setupRandomizeButton();
-    setupDownloadButton();
-    setupResizeHandling();
-    setupTooltips();
+    // Set up all UI components and event handlers
+    setupControls();           // Main control panel event listeners
+    setupPlayPauseButton();    // Play/pause button functionality
+    setupSpeedButton();        // Speed control button
+    setupRandomizeButton();    // Randomize settings button
+    setupDownloadButton();     // Export/download functionality
+    setupResizeHandling();     // Controls panel resize functionality
+    setupTooltips();           // Button tooltips
     
-    // Set initial button group position
+    // Position the floating button group
     updateButtonGroupPosition();
 
+    // Handle tab visibility changes (pause animation when tab is hidden)
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             // Tab is hidden/inactive - pause if not already paused
@@ -121,35 +143,43 @@ function setup() {
     });
 }
 
+/**
+ * Calculates and updates canvas size to fit the current grid configuration
+ * Ensures the canvas is large enough to display all characters while staying within bounds
+ */
 function updateCanvasSize() {
     // Calculate required canvas size based on grid and character size
     let requiredWidth = gridCols * baseCharWidth * (settings.charSize / 12) * settings.charSpacing;
     let requiredHeight = gridRows * baseCharHeight * (settings.charSize / 12) * settings.charSpacing;
 
-    // Constrain to maximum dimensions
+    // Constrain to maximum dimensions to prevent oversized canvas
     let maxWidth = 800;
     let maxHeight = 500;
 
-    // Calculate scale factor if needed
+    // Calculate scale factor if needed (don't scale up, only down)
     let scaleX = maxWidth / requiredWidth;
     let scaleY = maxHeight / requiredHeight;
     let scale = Math.min(scaleX, scaleY, 1.0);
 
-    // Calculate final canvas dimensions
+    // Calculate final canvas dimensions (constrained to maximum)
     let finalWidth = Math.min(requiredWidth, maxWidth);
     let finalHeight = Math.min(requiredHeight, maxHeight);
 
-    // Only resize if dimensions changed significantly
+    // Only resize if dimensions changed significantly (prevents unnecessary resizing)
     if (Math.abs(width - finalWidth) > 5 || Math.abs(height - finalHeight) > 5) {
         resizeCanvas(finalWidth, finalHeight);
     }
 }
 
+/**
+ * Sets up the resize functionality for the controls panel
+ * Allows users to drag the left edge of the controls panel to resize it
+ */
 function setupResizeHandling() {
     const resizeHandle = document.getElementById('resize-handle');
     const controlsPanel = document.getElementById('controls');
 
-    // Update handle position initially
+    // Helper function to update the resize handle position
     function updateHandlePosition() {
         const controlsWidth = controlsPanel.offsetWidth;
         resizeHandle.style.right = (controlsWidth - 4.5) + 'px'; // Center on the 1px border
@@ -157,11 +187,13 @@ function setupResizeHandling() {
 
     updateHandlePosition();
 
+    // Start resize operation on mouse down
     resizeHandle.addEventListener('mousedown', (e) => {
         isResizing = true;
         resizeStartX = e.clientX;
         resizeStartWidth = controlsPanel.offsetWidth;
 
+        // Add visual feedback classes
         resizeHandle.classList.add('dragging');
         controlsPanel.classList.add('resizing');
         document.body.style.cursor = 'ew-resize';
@@ -170,18 +202,19 @@ function setupResizeHandling() {
         e.preventDefault();
     });
 
+    // Handle resize during mouse movement
     document.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
 
         const deltaX = resizeStartX - e.clientX;
         const newWidth = resizeStartWidth + deltaX;
-        const minWidth = 250;
-        const maxWidth = window.innerWidth * 0.3;
+        const minWidth = 250;  // Minimum controls panel width
+        const maxWidth = window.innerWidth * 0.3;  // Maximum 30% of window width
 
         const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
         controlsPanel.style.width = clampedWidth + 'px';
 
-        // Update handle position
+        // Update handle position to stay aligned
         resizeHandle.style.right = (clampedWidth - 4.5) + 'px';
 
         // Update button group position to stay centered in the canvas area
@@ -190,10 +223,12 @@ function setupResizeHandling() {
         e.preventDefault();
     });
 
+    // End resize operation on mouse up
     document.addEventListener('mouseup', () => {
         if (isResizing) {
             isResizing = false;
 
+            // Remove visual feedback classes
             resizeHandle.classList.remove('dragging');
             controlsPanel.classList.remove('resizing');
             document.body.style.cursor = '';
@@ -204,7 +239,7 @@ function setupResizeHandling() {
         }
     });
 
-    // Handle hover states
+    // Handle hover states for visual feedback
     resizeHandle.addEventListener('mouseenter', () => {
         if (!isResizing) {
             controlsPanel.style.borderLeftColor = '#fff';
@@ -217,13 +252,17 @@ function setupResizeHandling() {
         }
     });
 
-    // Update handle position on window resize
+    // Update handle position when window is resized
     window.addEventListener('resize', () => {
         updateHandlePosition();
         updateButtonGroupPosition();
     });
 }
 
+/**
+ * Updates the position of the floating button group to stay centered in the canvas area
+ * Called when the controls panel is resized or the window is resized
+ */
 function updateButtonGroupPosition() {
     const buttonGroup = document.getElementById('button-group');
     const controlsPanel = document.getElementById('controls');
@@ -235,16 +274,24 @@ function updateButtonGroupPosition() {
     
     // Position the button group at the center of the canvas area
     buttonGroup.style.left = canvasCenter + 'px';
-    buttonGroup.style.transform = 'translateX(-50%)';
+    buttonGroup.style.transform = 'translateX(-50%)'; // Center the button group on its position
 }
 
+/**
+ * Main rendering function called by p5.js each frame
+ * Renders the ASCII art grid with all patterns, effects, and animations
+ */
 function draw() {
+    // Clear canvas with black background
     background(0);
+    
+    // Update animation time (adjusted by speed multiplier)
     time += 0.016 * speedMultiplier; // ~60fps with speed multiplier
 
-    // Update interactive effects
+    // Update interactive effects (click ripples, etc.)
     updateInteractiveEffects();
 
+    // Configure text rendering
     textAlign(CENTER, CENTER);
     textSize(settings.charSize);
 
@@ -257,7 +304,7 @@ function draw() {
     let scaleY = height / gridPixelHeight;
     gridScale = Math.min(scaleX, scaleY, 1.0); // Don't scale up, only down
 
-    // Calculate actual character size and spacing
+    // Calculate actual character size and spacing (scaled for responsive design)
     let actualCharWidth = baseCharWidth * gridScale * settings.charSpacing;
     let actualCharHeight = baseCharHeight * gridScale * settings.charSpacing;
     let actualCharSize = settings.charSize * gridScale;
@@ -268,14 +315,17 @@ function draw() {
 
     textSize(actualCharSize);
 
+    // Render each character in the grid
     for (let x = 0; x < gridCols; x++) {
         for (let y = 0; y < gridRows; y++) {
+            // Calculate pixel position for this grid cell
             let xPos = startX + (x + 0.5) * actualCharWidth;
             let yPos = startY + (y + 0.5) * actualCharHeight;
 
-            // Calculate primary pattern value
+            // Calculate primary pattern value (0-1 range)
             let value1 = getPatternValue(x, y, settings.pattern1, time);
 
+            // Initialize final values with primary pattern
             let finalValue = value1;
             let finalColor = settings.pattern1.color;
             let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
@@ -284,12 +334,13 @@ function draw() {
             let shouldRotate1 = settings.pattern1.rotation;
             let shouldRotate2 = false;
 
-            // Add secondary pattern if enabled
+            // Add secondary pattern if enabled (pattern blending)
             if (settings.pattern2.enabled) {
                 let value2 = getPatternValue(x, y, settings.pattern2, time);
                 finalValue = blendValues(value1, value2, settings.blendSettings.mode, settings.blendSettings.amount);
                 glowIntensity2 = settings.pattern2.glow ? value2 : 0;
 
+                // Blend colors from both patterns
                 finalColor = blendColors(
                     settings.pattern1.color,
                     settings.pattern2.color,
@@ -305,7 +356,7 @@ function draw() {
                 shouldRotate2 = settings.pattern2.rotation;
             }
 
-            // Apply interactive effects
+            // Apply interactive effects (mouse hover, clicks, etc.)
             if (settings.interactive.enabled) {
                 finalValue = applyInteractiveEffect(x, y, finalValue);
             }
@@ -321,7 +372,7 @@ function draw() {
             // Set fill color AFTER applying glow
             fill(finalColor);
 
-            // Convert to ASCII character using appropriate ramp
+            // Convert pattern value to ASCII character using appropriate character set
             let selectedRamp = useRamp1 ? currentRamp1 : currentRamp2;
             let charIndex = Math.floor(map(finalValue, 0, 1, 0, selectedRamp.length - 1));
             charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
@@ -348,68 +399,101 @@ function draw() {
     }
 }
 
+/**
+ * Updates interactive effects each frame
+ * Currently handles decay of click ripple effects
+ */
 function updateInteractiveEffects() {
-    // Decay click effects
+    // Decay click effects and remove expired ones
     clickEffects = clickEffects.filter(effect => {
-        effect.life -= 0.016;
-        return effect.life > 0;
+        effect.life -= 0.016; // Reduce life by one frame (~60fps)
+        return effect.life > 0; // Keep only effects that are still alive
     });
 }
 
+/**
+ * Applies interactive effects to a grid cell based on mouse position and click effects
+ * @param {number} x - Grid column index
+ * @param {number} y - Grid row index
+ * @param {number} baseValue - Base pattern value (0-1)
+ * @returns {number} Modified pattern value with interactive effects applied
+ */
 function applyInteractiveEffect(x, y, baseValue) {
+    // Convert grid coordinates to normalized coordinates (0-1 range)
     let normalizedX = x / gridCols;
     let normalizedY = y / gridRows;
     let effect = 0;
 
-    // Mouse effect
+    // Apply mouse hover effects
     let mouseDistance = dist(normalizedX, normalizedY, mousePos.x, mousePos.y);
     if (mouseDistance < settings.interactive.radius) {
         let strength = (1 - mouseDistance / settings.interactive.radius) * settings.interactive.strength;
 
+        // Apply different effect types based on settings
         switch (settings.interactive.type) {
             case 'ripple':
+                // Create ripple waves emanating from mouse position
                 effect += sin(mouseDistance * 20 - time * 5) * strength * 0.3;
                 break;
             case 'attract':
+                // Increase brightness near mouse
                 effect += strength * 0.5;
                 break;
             case 'repel':
+                // Decrease brightness near mouse
                 effect -= strength * 0.5;
                 break;
             case 'trail':
+                // Create animated trail effect
                 effect += strength * 0.4 * sin(time * 2);
                 break;
             case 'distort':
+                // Create distortion based on angle from mouse
                 let angle = atan2(normalizedY - mousePos.y, normalizedX - mousePos.x);
                 effect += sin(angle * 4 + time * 3) * strength * 0.3;
                 break;
         }
     }
 
-    // Click effects
+    // Apply click ripple effects
     for (let clickEffect of clickEffects) {
         let clickDistance = dist(normalizedX, normalizedY, clickEffect.x, clickEffect.y);
         if (clickDistance < clickEffect.radius) {
+            // Calculate effect strength based on distance and remaining life
             let clickStrength = (1 - clickDistance / clickEffect.radius) * clickEffect.strength * (clickEffect.life / clickEffect.maxLife);
+            // Create expanding ripple wave
             effect += sin(clickDistance * 15 - (clickEffect.maxLife - clickEffect.life) * 3) * clickStrength;
         }
     }
 
+    // Return final value constrained to 0-1 range
     return constrain(baseValue + effect, 0, 1);
 }
 
+/**
+ * Calculates the pattern value for a specific grid cell
+ * @param {number} x - Grid column index
+ * @param {number} y - Grid row index
+ * @param {object} pattern - Pattern configuration object
+ * @param {number} time - Current animation time
+ * @returns {number} Pattern value in 0-1 range
+ */
 function getPatternValue(x, y, pattern, time) {
+    // Convert grid coordinates to normalized coordinates (0-1 range)
     let normalizedX = x / gridCols;
     let normalizedY = y / gridRows;
     let value = 0;
 
+    // Generate different pattern types based on pattern.type
     switch (pattern.type) {
         case 'waves':
+            // Create animated wave pattern using sine waves
             value = (sin(normalizedX * TWO_PI * 5 + time * pattern.speed * 100) +
                 sin(normalizedY * TWO_PI * 3 + time * pattern.speed * 80)) / 2;
             break;
 
         case 'ripples':
+            // Create expanding ripple waves from center
             let centerX = 0.5;
             let centerY = 0.5;
             let distance = dist(normalizedX, normalizedY, centerX, centerY);
@@ -417,26 +501,31 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'noise':
+            // Use Perlin noise for organic, natural-looking patterns
             value = noise(normalizedX * pattern.scale * 100, normalizedY * pattern.scale * 100, time * pattern.speed * 10) * 2 - 1;
             break;
 
         case 'spiral':
+            // Create spiral pattern using polar coordinates
             let angle = atan2(normalizedY - 0.5, normalizedX - 0.5);
             let radius = dist(normalizedX, normalizedY, 0.5, 0.5);
             value = sin(angle * 3 + radius * 20 + time * pattern.speed * 100);
             break;
 
         case 'checkerboard':
+            // Create animated checkerboard pattern
             let checkX = floor(normalizedX * pattern.scale * 100);
             let checkY = floor(normalizedY * pattern.scale * 100);
             value = ((checkX + checkY + floor(time * pattern.speed * 100)) % 2) * 2 - 1;
             break;
 
         case 'stripes':
+            // Create diagonal stripe pattern
             value = sin((normalizedX + normalizedY) * pattern.scale * 200 + time * pattern.speed * 100);
             break;
 
         case 'plasma':
+            // Create complex plasma effect using multiple sine waves
             value = (sin(normalizedX * 16 + time * pattern.speed * 80) +
                 sin(normalizedY * 8 + time * pattern.speed * 60) +
                 sin((normalizedX + normalizedY) * 16 + time * pattern.speed * 40) +
@@ -444,6 +533,7 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'mandelbrot':
+            // Create animated Mandelbrot set pattern
             let zx = (normalizedX - 0.5) * 4;
             let zy = (normalizedY - 0.5) * 4;
             let cx = zx + sin(time * pattern.speed * 50) * 0.3;
@@ -452,6 +542,7 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'julia':
+            // Create animated Julia set pattern
             let jx = (normalizedX - 0.5) * 4;
             let jy = (normalizedY - 0.5) * 4;
             let juliaC = { x: sin(time * pattern.speed * 100) * 0.8, y: cos(time * pattern.speed * 70) * 0.8 };
@@ -459,6 +550,7 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'cellular':
+            // Create cellular automata pattern (Conway's Game of Life)
             if (floor(time * pattern.speed * 100) % 30 === 0) {
                 updateCellular();
             }
@@ -468,10 +560,12 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'voronoi':
+            // Create Voronoi diagram pattern
             value = getVoronoiValue(normalizedX, normalizedY, time * pattern.speed);
             break;
 
         case 'tunnel':
+            // Create tunnel/wormhole effect
             let tunnelAngle = atan2(normalizedY - 0.5, normalizedX - 0.5);
             let tunnelRadius = dist(normalizedX, normalizedY, 0.5, 0.5);
             value = sin(tunnelAngle * 8 + time * pattern.speed * 100) *
@@ -479,6 +573,7 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'mosaic':
+            // Create mosaic/tiled pattern using hash function
             let mosaicX = floor(normalizedX * pattern.scale * 200);
             let mosaicY = floor(normalizedY * pattern.scale * 200);
             let mosaicHash = ((mosaicX * 73856093) ^ (mosaicY * 19349663)) % 1000000;
@@ -486,50 +581,74 @@ function getPatternValue(x, y, pattern, time) {
             break;
     }
 
-    // Normalize to 0-1 range
+    // Normalize to 0-1 range (convert from -1 to 1 range)
     return (value + 1) / 2;
 }
 
+/**
+ * Calculates Mandelbrot set iteration count for a given complex number
+ * @param {number} cx - Real part of complex number
+ * @param {number} cy - Imaginary part of complex number
+ * @param {number} maxIter - Maximum number of iterations
+ * @returns {number} Number of iterations before escape (0 to maxIter)
+ */
 function mandelbrotIteration(cx, cy, maxIter) {
     let zx = 0, zy = 0;
     for (let i = 0; i < maxIter; i++) {
-        if (zx * zx + zy * zy > 4) return i;
-        let temp = zx * zx - zy * zy + cx;
-        zy = 2 * zx * zy + cy;
+        if (zx * zx + zy * zy > 4) return i; // Escape condition
+        let temp = zx * zx - zy * zy + cx;   // z^2 + c (real part)
+        zy = 2 * zx * zy + cy;               // z^2 + c (imaginary part)
         zx = temp;
     }
-    return maxIter;
+    return maxIter; // Point is in the set
 }
 
+/**
+ * Calculates Julia set iteration count for a given complex number and constant
+ * @param {number} zx - Real part of starting complex number
+ * @param {number} zy - Imaginary part of starting complex number
+ * @param {object} c - Complex constant {x: real, y: imaginary}
+ * @param {number} maxIter - Maximum number of iterations
+ * @returns {number} Number of iterations before escape (0 to maxIter)
+ */
 function juliaIteration(zx, zy, c, maxIter) {
     for (let i = 0; i < maxIter; i++) {
-        if (zx * zx + zy * zy > 4) return i;
-        let temp = zx * zx - zy * zy + c.x;
-        zy = 2 * zx * zy + c.y;
+        if (zx * zx + zy * zy > 4) return i; // Escape condition
+        let temp = zx * zx - zy * zy + c.x;  // z^2 + c (real part)
+        zy = 2 * zx * zy + c.y;              // z^2 + c (imaginary part)
         zx = temp;
     }
-    return maxIter;
+    return maxIter; // Point is in the set
 }
 
+/**
+ * Initializes the cellular automata grid with random cells
+ * Creates a 40x30 grid where each cell has a 40% chance of being alive
+ */
 function initCellular() {
     cellularGrid = [];
     for (let y = 0; y < 30; y++) {
         cellularGrid[y] = [];
         for (let x = 0; x < 40; x++) {
-            cellularGrid[y][x] = Math.random() > 0.6;
+            cellularGrid[y][x] = Math.random() > 0.6; // 40% chance of being alive
         }
     }
 }
 
+/**
+ * Updates the cellular automata grid using Conway's Game of Life rules
+ * Rules: Live cells with 2-3 neighbors survive, dead cells with exactly 3 neighbors become alive
+ */
 function updateCellular() {
     let newGrid = [];
     for (let y = 0; y < 30; y++) {
         newGrid[y] = [];
         for (let x = 0; x < 40; x++) {
+            // Count live neighbors (8 surrounding cells)
             let neighbors = 0;
             for (let dy = -1; dy <= 1; dy++) {
                 for (let dx = -1; dx <= 1; dx++) {
-                    if (dx === 0 && dy === 0) continue;
+                    if (dx === 0 && dy === 0) continue; // Skip the cell itself
                     let nx = x + dx;
                     let ny = y + dy;
                     if (nx >= 0 && nx < 40 && ny >= 0 && ny < 30) {
@@ -537,10 +656,13 @@ function updateCellular() {
                     }
                 }
             }
-            // Conway's Game of Life rules
+            
+            // Apply Conway's Game of Life rules
             if (cellularGrid[y][x]) {
+                // Live cell: survives if it has 2 or 3 neighbors
                 newGrid[y][x] = neighbors === 2 || neighbors === 3;
             } else {
+                // Dead cell: becomes alive if it has exactly 3 neighbors
                 newGrid[y][x] = neighbors === 3;
             }
         }
@@ -548,31 +670,43 @@ function updateCellular() {
     cellularGrid = newGrid;
 }
 
+/**
+ * Initializes Voronoi pattern points with random positions and velocities
+ * Creates 8 moving points that will define the Voronoi diagram regions
+ */
 function initVoronoi() {
     voronoiPoints = [];
     for (let i = 0; i < 8; i++) {
         voronoiPoints.push({
-            x: Math.random(),
-            y: Math.random(),
-            vx: (Math.random() - 0.5) * 0.02,
-            vy: (Math.random() - 0.5) * 0.02
+            x: Math.random(),                    // Random initial X position
+            y: Math.random(),                    // Random initial Y position
+            vx: (Math.random() - 0.5) * 0.02,   // Random X velocity
+            vy: (Math.random() - 0.5) * 0.02    // Random Y velocity
         });
     }
 }
 
+/**
+ * Calculates Voronoi diagram value for a given position
+ * @param {number} x - Normalized X coordinate (0-1)
+ * @param {number} y - Normalized Y coordinate (0-1)
+ * @param {number} timeOffset - Time offset for animation
+ * @returns {number} Voronoi value in -1 to 1 range
+ */
 function getVoronoiValue(x, y, timeOffset) {
-    // Update point positions
+    // Update point positions (move points around)
     for (let point of voronoiPoints) {
         point.x += point.vx;
         point.y += point.vy;
 
-        // Bounce off edges
+        // Bounce points off edges to keep them within bounds
         if (point.x <= 0 || point.x >= 1) point.vx *= -1;
         if (point.y <= 0 || point.y >= 1) point.vy *= -1;
         point.x = constrain(point.x, 0, 1);
         point.y = constrain(point.y, 0, 1);
     }
 
+    // Find the two closest points to create Voronoi regions
     let minDist = Infinity;
     let secondMinDist = Infinity;
 
@@ -586,18 +720,31 @@ function getVoronoiValue(x, y, timeOffset) {
         }
     }
 
+    // Create pattern based on distance difference between closest and second-closest points
     return ((secondMinDist - minDist) * 10 + sin(timeOffset * 100)) * 2 - 1;
 }
 
+/**
+ * Converts a hex color string to RGB object
+ * @param {string} hex - Hex color string (e.g., "#ff0000" or "ff0000")
+ * @returns {object} RGB object with r, g, b properties (0-255)
+ */
 function hexToRgb(hex) {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
-    } : { r: 255, g: 255, b: 255 };
+    } : { r: 255, g: 255, b: 255 }; // Default to white if parsing fails
 }
 
+/**
+ * Converts HSL color values to hex string
+ * @param {number} h - Hue (0-360)
+ * @param {number} s - Saturation (0-100)
+ * @param {number} l - Lightness (0-100)
+ * @returns {string} Hex color string
+ */
 function hslToHex(h, s, l) {
     l /= 100;
     const a = s * Math.min(l, 1 - l) / 100;
@@ -609,46 +756,64 @@ function hslToHex(h, s, l) {
     return `#${f(0)}${f(8)}${f(4)}`;
 }
 
+/**
+ * Blends two colors using various blend modes
+ * @param {string} color1Hex - First color in hex format
+ * @param {string} color2Hex - Second color in hex format
+ * @param {string} mode - Blend mode: 'add', 'multiply', 'overlay', 'difference', 'screen'
+ * @param {number} value1 - Pattern value from first pattern (0-1)
+ * @param {number} value2 - Pattern value from second pattern (0-1)
+ * @param {number} amount - Blend intensity (0-1)
+ * @returns {string} Blended color in RGB format
+ */
 function blendColors(color1Hex, color2Hex, mode, value1, value2, amount) {
     let color1 = hexToRgb(color1Hex);
     let color2 = hexToRgb(color2Hex);
 
+    // Calculate local blend factor based on pattern values and blend amount
     let localBlend = value1 * value2 * amount;
 
     let r, g, b;
 
+    // Apply different blend modes
     switch (mode) {
         case 'add':
+            // Additive blending (brightens the result)
             r = constrain(color1.r + (color2.r * localBlend), 0, 255);
             g = constrain(color1.g + (color2.g * localBlend), 0, 255);
             b = constrain(color1.b + (color2.b * localBlend), 0, 255);
             break;
 
         case 'multiply':
+            // Multiplicative blending (darkens the result)
             r = lerp(color1.r, (color1.r * color2.r) / 255, localBlend);
             g = lerp(color1.g, (color1.g * color2.g) / 255, localBlend);
             b = lerp(color1.b, (color1.b * color2.b) / 255, localBlend);
             break;
 
         case 'overlay':
+            // Overlay blending (combines multiply and screen)
             r = lerp(color1.r, color1.r < 128 ? (2 * color1.r * color2.r) / 255 : 255 - (2 * (255 - color1.r) * (255 - color2.r)) / 255, localBlend);
             g = lerp(color1.g, color1.g < 128 ? (2 * color1.g * color2.g) / 255 : 255 - (2 * (255 - color1.g) * (255 - color2.g)) / 255, localBlend);
             b = lerp(color1.b, color1.b < 128 ? (2 * color1.b * color2.b) / 255 : 255 - (2 * (255 - color1.b) * (255 - color2.b)) / 255, localBlend);
             break;
 
         case 'difference':
+            // Difference blending (shows the difference between colors)
             r = lerp(color1.r, Math.abs(color1.r - color2.r), localBlend);
             g = lerp(color1.g, Math.abs(color1.g - color2.g), localBlend);
             b = lerp(color1.b, Math.abs(color1.b - color2.b), localBlend);
             break;
 
         case 'screen':
+            // Screen blending (lightens the result)
             r = lerp(color1.r, 255 - (((255 - color1.r) * (255 - color2.r)) / 255), localBlend);
             g = lerp(color1.g, 255 - (((255 - color1.g) * (255 - color2.g)) / 255), localBlend);
             b = lerp(color1.b, 255 - (((255 - color1.b) * (255 - color2.b)) / 255), localBlend);
             break;
 
         default:
+            // Linear interpolation (default)
             r = lerp(color1.r, color2.r, localBlend);
             g = lerp(color1.g, color2.g, localBlend);
             b = lerp(color1.b, color2.b, localBlend);
@@ -657,9 +822,16 @@ function blendColors(color1Hex, color2Hex, mode, value1, value2, amount) {
     return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
 }
 
+/**
+ * Applies a glow effect to the current drawing context
+ * @param {string} color - Color string (RGB or hex format)
+ * @param {number} intensity - Glow intensity (0-1)
+ * @param {number} charSize - Character size for scaling the glow
+ */
 function applyGlow(color, intensity, charSize) {
     if (intensity <= 0) return;
 
+    // Parse color to extract RGB values
     let colorMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (!colorMatch) {
         // Handle hex colors if rgb parsing fails
@@ -670,7 +842,7 @@ function applyGlow(color, intensity, charSize) {
             let b = parseInt(hexMatch[3], 16);
             colorMatch = [null, r, g, b];
         } else {
-            return;
+            return; // Skip glow if color parsing fails
         }
     }
 
@@ -678,40 +850,60 @@ function applyGlow(color, intensity, charSize) {
     let g = parseInt(colorMatch[2]);
     let b = parseInt(colorMatch[3]);
 
-    // Make glow much more visible
-    let glowSize = intensity * charSize * 3.0;  // Increased from 0.8 to 3.0
-    let glowAlpha = Math.min(intensity * 1.5, 1.0);  // Increased from 0.6 to 1.5 (capped at 1.0)
+    // Calculate glow parameters
+    let glowSize = intensity * charSize * 3.0;  // Glow blur radius
+    let glowAlpha = Math.min(intensity * 1.5, 1.0);  // Glow opacity (capped at 1.0)
 
     push();
-    // Apply multiple glow layers for stronger effect
+    // Apply shadow-based glow effect
     drawingContext.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
     drawingContext.shadowBlur = glowSize;
 
-    // Add a second, more intense inner glow
+    // Ensure no shadow offset for centered glow
     drawingContext.shadowOffsetX = 0;
     drawingContext.shadowOffsetY = 0;
     pop();
 }
 
+/**
+ * Blends two pattern values using various mathematical blend modes
+ * @param {number} value1 - First pattern value (0-1)
+ * @param {number} value2 - Second pattern value (0-1)
+ * @param {string} mode - Blend mode: 'add', 'multiply', 'overlay', 'difference', 'screen'
+ * @param {number} amount - Blend intensity (0-1)
+ * @returns {number} Blended value (0-1)
+ */
 function blendValues(value1, value2, mode, amount) {
+    // Adjust second value based on blend amount
     value2 = lerp(0.5, value2, amount);
 
+    // Apply different mathematical blend modes
     switch (mode) {
         case 'add':
+            // Additive blending (brightens)
             return constrain(value1 + value2 - 0.5, 0, 1);
         case 'multiply':
+            // Multiplicative blending (darkens)
             return value1 * value2;
         case 'overlay':
+            // Overlay blending (combines multiply and screen)
             return value1 < 0.5 ? 2 * value1 * value2 : 1 - 2 * (1 - value1) * (1 - value2);
         case 'difference':
+            // Difference blending (shows contrast)
             return abs(value1 - value2);
         case 'screen':
+            // Screen blending (lightens)
             return 1 - (1 - value1) * (1 - value2);
         default:
+            // Return original value if mode not recognized
             return value1;
     }
 }
 
+/**
+ * p5.js mouse moved event handler
+ * Updates mouse position for interactive effects when interactive mode is enabled
+ */
 function mouseMoved() {
     if (settings.interactive.enabled) {
         // Calculate grid dimensions and position
@@ -724,15 +916,20 @@ function mouseMoved() {
         let relativeX = mouseX - startX;
         let relativeY = mouseY - startY;
 
+        // Convert to normalized coordinates (0-1 range)
         mousePos.x = relativeX / gridPixelWidth;
         mousePos.y = relativeY / gridPixelHeight;
 
-        // Clamp to 0-1 range
+        // Clamp to 0-1 range to ensure coordinates are within bounds
         mousePos.x = constrain(mousePos.x, 0, 1);
         mousePos.y = constrain(mousePos.y, 0, 1);
     }
 }
 
+/**
+ * p5.js mouse pressed event handler
+ * Creates click ripple effects when interactive mode and click effects are enabled
+ */
 function mousePressed() {
     if (settings.interactive.enabled && settings.interactive.clickEnabled) {
         // Calculate grid dimensions and position
@@ -745,6 +942,7 @@ function mousePressed() {
         let relativeX = mouseX - startX;
         let relativeY = mouseY - startY;
 
+        // Convert to normalized coordinates (0-1 range)
         let normalizedX = relativeX / gridPixelWidth;
         let normalizedY = relativeY / gridPixelHeight;
 
@@ -753,8 +951,8 @@ function mousePressed() {
             clickEffects.push({
                 x: normalizedX,
                 y: normalizedY,
-                life: 3.0,
-                maxLife: 3.0,
+                life: 3.0,                    // Initial life in seconds
+                maxLife: 3.0,                 // Maximum life for decay calculation
                 strength: settings.interactive.strength,
                 radius: settings.interactive.radius
             });
