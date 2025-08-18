@@ -82,7 +82,8 @@ let settings = {
 };
 
 function setup() {
-    canvas = createCanvas(800, 500);
+    canvas = createCanvas(800, 500); // Start with default size
+    updateCanvasSize(); // Then update to fit grid
     canvas.parent('canvas-container');
     
     textAlign(CENTER, CENTER);
@@ -118,6 +119,30 @@ function setup() {
             }
         }
     });
+}
+
+function updateCanvasSize() {
+    // Calculate required canvas size based on grid and character size
+    let requiredWidth = gridCols * baseCharWidth * (settings.charSize / 12); // 12 is the default char size
+    let requiredHeight = gridRows * baseCharHeight * (settings.charSize / 12);
+    
+    // Constrain to maximum dimensions
+    let maxWidth = 800;
+    let maxHeight = 500;
+    
+    // Calculate scale factor if needed
+    let scaleX = maxWidth / requiredWidth;
+    let scaleY = maxHeight / requiredHeight;
+    let scale = Math.min(scaleX, scaleY, 1.0);
+    
+    // Calculate final canvas dimensions
+    let finalWidth = Math.min(requiredWidth, maxWidth);
+    let finalHeight = Math.min(requiredHeight, maxHeight);
+    
+    // Only resize if dimensions changed significantly
+    if (Math.abs(width - finalWidth) > 5 || Math.abs(height - finalHeight) > 5) {
+        resizeCanvas(finalWidth, finalHeight);
+    }
 }
 
 function setupResizeHandling() {
@@ -723,17 +748,20 @@ function setupControls() {
         settings.gridCols = parseInt(e.target.value);
         gridCols = settings.gridCols;
         document.getElementById('gridColsValue').textContent = e.target.value;
+        updateCanvasSize();
     });
 
     document.getElementById('gridRows').addEventListener('input', (e) => {
         settings.gridRows = parseInt(e.target.value);
         gridRows = settings.gridRows;
         document.getElementById('gridRowsValue').textContent = e.target.value;
+        updateCanvasSize();
     });
 
     document.getElementById('charSize').addEventListener('input', (e) => {
         settings.charSize = parseInt(e.target.value);
         document.getElementById('charSizeValue').textContent = e.target.value;
+        updateCanvasSize();
     });
 
     // Character Set
@@ -931,8 +959,8 @@ function setupDropdowns() {
 }
 
 function windowResized() {
-    resizeCanvas(800, 500);
-} 
+    updateCanvasSize();
+}
 
 function setupPlayPauseButton() {
     const playPauseBtn = document.getElementById('play-pause-btn');
@@ -1074,37 +1102,154 @@ function exportCanvasFile(format) {
         return;
     }
 
-    // Get canvas element
-    let domCanvas = null;
+    // Create high-resolution version
+    exportHighResCanvas(base, ext);
+}
+
+function exportHighResCanvas(filename, ext) {
+    // Calculate scale factor for 300 DPI (300/72 = ~4.17x)
+    const dpiScale = 300 / 72;
     
-    if (canvas && canvas.canvas) {
-        domCanvas = canvas.canvas;
-    } else if (canvas && canvas.elt) {
-        domCanvas = canvas.elt;
-    } else {
-        domCanvas = document.querySelector('canvas');
-    }
+    // Create off-screen canvas for high-res rendering
+    const offscreenCanvas = document.createElement('canvas');
+    const ctx = offscreenCanvas.getContext('2d');
+    
+    // Use the EXACT same dimensions as the current canvas, just scaled up
+    offscreenCanvas.width = Math.floor(width * dpiScale);
+    offscreenCanvas.height = Math.floor(height * dpiScale);
+    
+    // Clear the off-screen canvas
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    
+    // Set up text rendering
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Use the SAME scaling logic as the main draw() function, just scaled up
+    let gridPixelWidth = gridCols * baseCharWidth;
+    let gridPixelHeight = gridRows * baseCharHeight;
+    
+    // Use the same scale calculation as draw(), but with the high-res dimensions
+    let scaleX = offscreenCanvas.width / gridPixelWidth;
+    let scaleY = offscreenCanvas.height / gridPixelHeight;
+    let currentGridScale = Math.min(scaleX, scaleY, dpiScale); // This was the issue - should match draw()
+    
+    let actualCharWidth = baseCharWidth * currentGridScale;
+    let actualCharHeight = baseCharHeight * currentGridScale;
+    let actualCharSize = settings.charSize * currentGridScale;
+    
+    // Center the grid exactly like in draw()
+    let startX = (offscreenCanvas.width - (gridCols * actualCharWidth)) / 2;
+    let startY = (offscreenCanvas.height - (gridRows * actualCharHeight)) / 2;
+    
+    ctx.font = `${actualCharSize}px monospace`;
+    
+    // Render the grid at high resolution on off-screen canvas
+    for (let x = 0; x < gridCols; x++) {
+        for (let y = 0; y < gridRows; y++) {
+            let xPos = startX + (x + 0.5) * actualCharWidth;
+            let yPos = startY + (y + 0.5) * actualCharHeight;
 
-    if (!domCanvas) {
-        alert('Canvas not available for download');
-        return;
-    }
+            let value1 = getPatternValue(x, y, settings.pattern1, time);
+            let finalValue = value1;
+            let finalColor = settings.pattern1.color;
+            let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
+            let glowIntensity2 = 0;
+            let useRamp1 = true;
+            let shouldRotate1 = settings.pattern1.rotation;
+            let shouldRotate2 = false;
 
-    // Primary method: toBlob
+            if (settings.pattern2.enabled) {
+                let value2 = getPatternValue(x, y, settings.pattern2, time);
+                finalValue = blendValues(value1, value2, settings.blendSettings.mode, settings.blendSettings.amount);
+                glowIntensity2 = settings.pattern2.glow ? value2 : 0;
+
+                finalColor = blendColors(
+                    settings.pattern1.color,
+                    settings.pattern2.color,
+                    settings.blendSettings.mode,
+                    value1,
+                    value2,
+                    settings.blendSettings.amount
+                );
+
+                let blendStrength = value1 * value2 * settings.blendSettings.amount;
+                useRamp1 = blendStrength < 0.5;
+                shouldRotate2 = settings.pattern2.rotation;
+            }
+
+            if (settings.interactive.enabled) {
+                finalValue = applyInteractiveEffect(x, y, finalValue);
+            }
+
+            // Apply glow effect if needed
+            let maxGlowIntensity = Math.max(glowIntensity1, glowIntensity2);
+            if (maxGlowIntensity > 0) {
+                let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7);
+                let colorMatch = finalColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/) || finalColor.match(/#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})/);
+                if (colorMatch) {
+                    let r, g, b;
+                    if (colorMatch[0].startsWith('rgb')) {
+                        r = parseInt(colorMatch[1]);
+                        g = parseInt(colorMatch[2]);
+                        b = parseInt(colorMatch[3]);
+                    } else {
+                        r = parseInt(colorMatch[1], 16);
+                        g = parseInt(colorMatch[2], 16);
+                        b = parseInt(colorMatch[3], 16);
+                    }
+                    
+                    let glowSize = enhancedGlowIntensity * actualCharSize * 3.0;
+                    let glowAlpha = Math.min(enhancedGlowIntensity * 1.5, 1.0);
+                    
+                    ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
+                    ctx.shadowBlur = glowSize;
+                }
+            } else {
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.fillStyle = finalColor;
+
+            let selectedRamp = useRamp1 ? currentRamp1 : currentRamp2;
+            let charIndex = Math.floor(map(finalValue, 0, 1, 0, selectedRamp.length - 1));
+            charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
+            let char = selectedRamp[charIndex];
+
+            let rotationAngle = 0;
+            if ((useRamp1 && shouldRotate1) || (!useRamp1 && shouldRotate2)) {
+                rotationAngle = finalValue * TWO_PI + (x + y) * 0.1 + time * 2;
+            }
+
+            if (rotationAngle !== 0) {
+                ctx.save();
+                ctx.translate(xPos, yPos);
+                ctx.rotate(rotationAngle);
+                ctx.fillText(char, 0, 0);
+                ctx.restore();
+            } else {
+                ctx.fillText(char, xPos, yPos);
+            }
+        }
+    }
+    
+    // Export the off-screen canvas
     try {
         const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
         const quality = ext === 'jpg' ? 0.9 : undefined;
         
-        domCanvas.toBlob((blob) => {
+        offscreenCanvas.toBlob((blob) => {
             if (!blob) {
-                tryP5SaveMethod(base, ext);
+                alert('Export failed');
                 return;
             }
             
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${base}.${ext}`;
+            a.download = `${filename}.${ext}`;
             a.style.display = 'none';
             
             document.body.appendChild(a);
@@ -1118,7 +1263,7 @@ function exportCanvasFile(format) {
         }, mimeType, quality);
         
     } catch (error) {
-        tryP5SaveMethod(base, ext);
+        alert('High-res export failed');
     }
 }
 
