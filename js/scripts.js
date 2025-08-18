@@ -85,6 +85,7 @@ function setup() {
     
     setupControls();
     setupPlayPauseButton();
+    setupRandomizeButton();
     setupResizeHandling();
 }
 
@@ -498,6 +499,17 @@ function hexToRgb(hex) {
     } : {r: 255, g: 255, b: 255};
 }
 
+function hslToHex(h, s, l) {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 function blendColors(color1Hex, color2Hex, mode, value1, value2, amount) {
     let color1 = hexToRgb(color1Hex);
     let color2 = hexToRgb(color2Hex);
@@ -862,3 +874,93 @@ function setupPlayPauseButton() {
     });
 }
 
+function setupRandomizeButton() {
+    const randomizeBtn = document.getElementById('randomize-btn');
+    
+    randomizeBtn.addEventListener('click', () => {
+        // Randomize pattern types
+        const patternTypes = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'cellular', 'voronoi', 'tunnel', 'mosaic'];
+        const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
+        
+        // Randomize primary pattern
+        settings.pattern1.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
+        settings.pattern1.speed = Math.random() * 0.049 + 0.001; // 0.001 to 0.05
+        settings.pattern1.scale = Math.random() * 0.19 + 0.01; // 0.01 to 0.2
+        settings.pattern1.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
+        settings.pattern1.glow = Math.random() > 0.5;
+        
+        // Randomize primary character set
+        const selectedCharSet1 = charSets[Math.floor(Math.random() * charSets.length)];
+        currentRamp1 = ASCII_RAMPS[selectedCharSet1];
+        
+        // Maybe enable secondary pattern
+        if (Math.random() > 0.4) {
+            settings.pattern2.enabled = true;
+            settings.pattern2.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
+            settings.pattern2.speed = Math.random() * 0.049 + 0.001;
+            settings.pattern2.scale = Math.random() * 0.19 + 0.01;
+            settings.pattern2.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
+            settings.pattern2.glow = Math.random() > 0.5;
+            settings.blend.amount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
+            
+            // Randomize secondary character set
+            const selectedCharSet2 = charSets[Math.floor(Math.random() * charSets.length)];
+            currentRamp2 = ASCII_RAMPS[selectedCharSet2];
+            
+            const blendModes = ['add', 'multiply', 'overlay', 'difference', 'screen'];
+            settings.blend.mode = blendModes[Math.floor(Math.random() * blendModes.length)];
+        }
+        
+        // Reinitialize special patterns if needed
+        if (settings.pattern1.type === 'cellular' || settings.pattern2.type === 'cellular') {
+            initCellular();
+        }
+        if (settings.pattern1.type === 'voronoi' || settings.pattern2.type === 'voronoi') {
+            initVoronoi();
+        }
+        
+        // Update UI to reflect changes
+        updateUIFromSettings();
+    });
+}
+
+function updateUIFromSettings() {
+    // Update all UI controls to match current settings
+    document.getElementById('pattern1Type').value = settings.pattern1.type;
+    document.getElementById('pattern1Speed').value = settings.pattern1.speed;
+    document.getElementById('pattern1SpeedValue').textContent = settings.pattern1.speed.toFixed(3);
+    document.getElementById('pattern1Scale').value = settings.pattern1.scale;
+    document.getElementById('pattern1ScaleValue').textContent = settings.pattern1.scale.toFixed(3);
+    document.getElementById('pattern1Color').value = settings.pattern1.color;
+    document.getElementById('pattern1Glow').checked = settings.pattern1.glow;
+    
+    // Update character set dropdowns
+    const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
+    const currentCharSet1 = charSets.find(set => ASCII_RAMPS[set] === currentRamp1) || 'blocks';
+    document.getElementById('pattern1CharSet').value = currentCharSet1;
+    
+    // Update secondary pattern UI
+    const pattern2Toggle = document.getElementById('pattern2Toggle');
+    const pattern2Settings = document.getElementById('pattern2Settings');
+    
+    if (settings.pattern2.enabled) {
+        pattern2Toggle.classList.add('active');
+        pattern2Toggle.textContent = 'Disable Secondary Pattern';
+        pattern2Settings.style.display = 'block';
+        
+        document.getElementById('pattern2Type').value = settings.pattern2.type;
+        document.getElementById('pattern2Speed').value = settings.pattern2.speed;
+        document.getElementById('pattern2SpeedValue').textContent = settings.pattern2.speed.toFixed(3);
+        document.getElementById('pattern2Scale').value = settings.pattern2.scale;
+        document.getElementById('pattern2ScaleValue').textContent = settings.pattern2.scale.toFixed(3);
+        document.getElementById('pattern2Color').value = settings.pattern2.color;
+        document.getElementById('pattern2Glow').checked = settings.pattern2.glow;
+        document.getElementById('blendMode').value = settings.blend.mode;
+        document.getElementById('blendAmount').value = settings.blend.amount;
+        document.getElementById('blendAmountValue').textContent = settings.blend.amount.toFixed(1);
+        
+        // Update secondary character set dropdown
+        const currentCharSet2 = charSets.find(set => ASCII_RAMPS[set] === currentRamp2) || 'blocks';
+        document.getElementById('pattern2CharSet').value = currentCharSet2;
+    }
+}

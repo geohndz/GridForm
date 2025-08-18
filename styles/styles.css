@@ -252,10 +252,17 @@ input[type="range"]::-moz-range-track {
     color: #888;
 }
 
-#play-pause-btn {
+#button-group {
     position: fixed;
     bottom: 30px;
     left: 40%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+}
+
+#play-pause-btn, #randomize-btn {
     width: 50px;
     height: 50px;
     background: rgba(0, 0, 0, 0.8);
@@ -266,16 +273,15 @@ input[type="range"]::-moz-range-track {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    z-index: 100;
     padding: 0;
 }
 
-#play-pause-btn:hover {
+#play-pause-btn:hover, #randomize-btn:hover {
     background: rgba(0, 0, 0, 0.9);
     border-color: #fff;
 }
 
-#play-pause-btn:hover svg {
+#play-pause-btn:hover svg, #randomize-btn:hover svg {
     fill: #fff;
 }
 
@@ -283,7 +289,7 @@ input[type="range"]::-moz-range-track {
     background: rgba(255, 255, 255, 0.1);
 }
 
-#play-pause-btn svg {
+#play-pause-btn svg, #randomize-btn svg {
     width: 20px;
     height: 20px;
     fill: #333;
