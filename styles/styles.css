@@ -589,3 +589,69 @@ input[type="range"]::-moz-range-track {
     height: 100%;
     stroke: currentColor;
 }
+
+/* GIF Progress Overlay */
+.gif-progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.gif-progress-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.gif-progress-content {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.gif-progress-title {
+    font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: #00ff88;
+    margin: 0 0 20px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gif-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 0 15px 0;
+}
+
+.gif-progress-fill {
+    height: 100%;
+    background: #ffffff;
+    width: 0%;
+    transition: width 0.1s ease;
+    border-radius: 4px;
+}
+
+.gif-progress-text {
+    font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+    font-size: 12px;
+    color: #ccc;
+    margin: 0;
+}

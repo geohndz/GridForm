@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GridForm</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.8.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
 
     <link rel="icon" href="assets/logo/favicon-dark.svg" media="(prefers-color-scheme: light)">
     <link rel="icon" href="assets/logo/favicon-light.svg" media="(prefers-color-scheme: dark)">
@@ -281,7 +281,7 @@
                         <div class="value-display" id="pattern2ScaleValue">0.08</div>
 
                         <label>Blend Mode</label>
-                        <select id="blendMode">
+                        <select id="blendModeSelect">
                             <option value="add">Add</option>
                             <option value="multiply" selected>Multiply</option>
                             <option value="overlay">Overlay</option>
@@ -346,6 +346,17 @@
                     </svg>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- GIF Recording Progress Overlay -->
+    <div id="gif-progress-overlay" class="gif-progress-overlay">
+        <div class="gif-progress-content">
+            <div class="gif-progress-title">Recording GIF...</div>
+            <div class="gif-progress-bar">
+                <div class="gif-progress-fill" id="gif-progress-fill"></div>
+            </div>
+            <div class="gif-progress-text" id="gif-progress-text">0%</div>
         </div>
     </div>
 

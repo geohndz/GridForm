@@ -123,11 +123,21 @@ A dynamic ASCII art generator that creates mesmerizing animated patterns using m
 - **Click Effects** - Enable permanent effects on click
 
 ### Export Options
-- **PNG Image** - Static image export
+- **PNG Image** - High-resolution static image export
 - **JPEG Image** - Compressed image format
-- **GIF Animation** - Animated GIF export
+- **GIF Animation** - Animated GIF export with perfect loops (60-150 frames)
 - **SVG Vector** - Scalable vector format
 - **Text File** - Raw ASCII text output
+
+#### GIF Export Details
+The GIF export feature creates animated GIFs with optimized loop durations:
+- **Waves/Ripples**: 60 frames (1 second) for smooth oscillations
+- **Spiral/Tunnel**: 90 frames (1.5 seconds) for complex rotations
+- **Cellular Automata**: 120 frames (2 seconds) for evolution patterns
+- **Fractals (Mandelbrot/Julia)**: 150 frames (2.5 seconds) for smooth transitions
+- **Other Patterns**: 60 frames (1 second) default duration
+
+The GIFs are automatically optimized for perfect loops and include progress notifications during export.
 
 ## Technical Details
 
@@ -147,6 +157,7 @@ A dynamic ASCII art generator that creates mesmerizing animated patterns using m
 - **Modern Browsers** - Chrome 60+, Firefox 55+, Safari 12+, Edge 79+
 - **Canvas Support** - Requires HTML5 Canvas support
 - **ES6 Features** - Uses modern JavaScript features
+- **GIF Export** - Requires p5.js 1.9.0+ for animated GIF export
 
 ## Customization
 

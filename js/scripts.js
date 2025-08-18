@@ -1,3 +1,7 @@
+// GridForm - ASCII Art Animation Generator
+// Features: Multiple pattern types, dual pattern blending, interactive effects, and export options
+// Export formats: PNG, JPEG, GIF (animated), SVG, and text files
+// 
 // ASCII grayscale ramp - from darkest to lightest
 const ASCII_RAMPS = {
     blocks: " ░▒▓▌▍▎▏▊▋█",
@@ -759,33 +763,47 @@ function mousePressed() {
 }
 
 function setupControls() {
+    // Helper function to safely add event listeners
+    function safeAddEventListener(elementId, eventType, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener(eventType, handler);
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+
     // Setup dropdown functionality
     setupDropdowns();
 
     // Display Settings
-    document.getElementById('gridCols').addEventListener('input', (e) => {
+    safeAddEventListener('gridCols', 'input', (e) => {
         settings.gridCols = parseInt(e.target.value);
         gridCols = settings.gridCols;
-        document.getElementById('gridColsValue').textContent = e.target.value;
+        const gridColsValueElement = document.getElementById('gridColsValue');
+        if (gridColsValueElement) gridColsValueElement.textContent = e.target.value;
         updateCanvasSize();
     });
 
-    document.getElementById('gridRows').addEventListener('input', (e) => {
+    safeAddEventListener('gridRows', 'input', (e) => {
         settings.gridRows = parseInt(e.target.value);
         gridRows = settings.gridRows;
-        document.getElementById('gridRowsValue').textContent = e.target.value;
+        const gridRowsValueElement = document.getElementById('gridRowsValue');
+        if (gridRowsValueElement) gridRowsValueElement.textContent = e.target.value;
         updateCanvasSize();
     });
 
-    document.getElementById('charSize').addEventListener('input', (e) => {
+    safeAddEventListener('charSize', 'input', (e) => {
         settings.charSize = parseInt(e.target.value);
-        document.getElementById('charSizeValue').textContent = e.target.value;
+        const charSizeValueElement = document.getElementById('charSizeValue');
+        if (charSizeValueElement) charSizeValueElement.textContent = e.target.value;
         updateCanvasSize();
     });
 
-    document.getElementById('charSpacing').addEventListener('input', (e) => {
+    safeAddEventListener('charSpacing', 'input', (e) => {
         settings.charSpacing = parseFloat(e.target.value);
-        document.getElementById('charSpacingValue').textContent = e.target.value;
+        const charSpacingValueElement = document.getElementById('charSpacingValue');
+        if (charSpacingValueElement) charSpacingValueElement.textContent = e.target.value;
         updateCanvasSize();
     });
 
@@ -930,13 +948,16 @@ function setupControls() {
     });
 
     // Blending
-    document.getElementById('blendMode').addEventListener('change', (e) => {
+    safeAddEventListener('blendMode', 'change', (e) => {
         settings.blendSettings.mode = e.target.value;
     });
 
-    document.getElementById('blendAmount').addEventListener('input', (e) => {
+    safeAddEventListener('blendAmount', 'input', (e) => {
         settings.blendSettings.amount = parseFloat(e.target.value);
-        document.getElementById('blendAmountValue').textContent = e.target.value;
+        const blendAmountValueElement = document.getElementById('blendAmountValue');
+        if (blendAmountValueElement) {
+            blendAmountValueElement.textContent = e.target.value;
+        }
     });
 }
 
@@ -1098,6 +1119,7 @@ function setupDownloadButton() {
                     exportCanvasFile(format);
                 } catch (err) {
                     console.error('Download failed:', err);
+                    alert(`Failed to export ${format.toUpperCase()} file. Please try again.`);
                 } finally {
                     setTimeout(() => {
                         hideMenu();
@@ -1119,6 +1141,11 @@ function exportCanvasFile(format) {
 
     if (format === 'txt') {
         exportTextFile(base);
+        return;
+    }
+
+    if (format === 'gif') {
+        exportGifAnimation(base);
         return;
     }
 
@@ -1348,6 +1375,71 @@ function tryManualSave(filename, ext) {
     }
 }
 
+function exportGifAnimation(filename) {
+    // Check if saveGif is available
+    if (typeof saveGif !== 'function') {
+        // Try to provide helpful error message
+        console.error('saveGif function not available');
+        alert('GIF export requires p5.js version 1.9.0 or higher. Please update your p5.js library.');
+        return;
+    }
+
+    // TODO: Future enhancement - Add UI controls for custom GIF duration
+    // This could include a dialog to let users choose frame count and duration
+
+    // Ensure animation is running for GIF recording
+    if (isPaused) {
+        alert('Please unpause the animation before recording a GIF.');
+        return;
+    }
+
+    // Use shorter durations for faster downloads and smaller files
+    // Focus on creating perfect loops rather than long animations
+    let duration = 1.0; // Duration in seconds
+    
+    // Adjust based on pattern type for better loops
+    if (settings.pattern1.type === 'waves' || settings.pattern1.type === 'ripples') {
+        duration = 1.0; // 1 second for smooth oscillations
+    } else if (settings.pattern1.type === 'spiral' || settings.pattern1.type === 'tunnel') {
+        duration = 1.5; // 1.5 seconds for complex rotations
+    } else if (settings.pattern1.type === 'cellular') {
+        duration = 2.0; // 2 seconds for evolution patterns
+    } else if (settings.pattern1.type === 'mandelbrot' || settings.pattern1.type === 'julia') {
+        duration = 2.5; // 2.5 seconds for smooth transitions
+    } else {
+        duration = 1.0; // Default 1 second
+    }
+    
+    // Configure GIF options for perfect loops
+    const options = {
+        units: "seconds", // Use seconds instead of frames for more reliable recording
+        delay: 0,
+        silent: true, // Disable progress notifications
+        notificationDuration: 0, // No notification duration
+        notificationID: 'gifProgress'
+    };
+
+    try {
+        // Show a brief message that recording is starting
+        console.log(`Starting GIF recording: ${filename}.gif (${duration}s duration)`);
+        console.log('GIF options:', options);
+        console.log('Note: Processing may take several seconds after recording completes');
+        
+        // Show progress overlay and start recording
+        showGifProgressOverlay(duration);
+        
+        // Start the GIF recording
+        saveGif(`${filename}.gif`, duration, options);
+        
+        // Show a "will download soon" toast to set expectations
+        showRecordingToast(`${filename}.gif`, duration);
+        
+    } catch (error) {
+        console.error('GIF export failed:', error);
+        alert('GIF export failed. Please try again. Make sure your browser supports the required features.');
+    }
+}
+
 function exportTextFile(filename) {
     let textContent = '';
 
@@ -1497,6 +1589,79 @@ function setupTooltips() {
     });
 }
 
+function showGifProgressOverlay(duration) {
+    const overlay = document.getElementById('gif-progress-overlay');
+    const progressFill = document.getElementById('gif-progress-fill');
+    const progressText = document.getElementById('gif-progress-text');
+    
+    if (!overlay || !progressFill || !progressText) {
+        console.warn('Progress overlay elements not found');
+        return;
+    }
+    
+    // Show the overlay
+    overlay.classList.add('show');
+    
+    // Reset progress
+    progressFill.style.width = '0%';
+    progressText.textContent = '0%';
+    
+    // Animate progress over the duration
+    const startTime = Date.now();
+    const endTime = startTime + (duration * 1000);
+    
+    function updateProgress() {
+        const currentTime = Date.now();
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / (duration * 1000), 1);
+        
+        const percentage = Math.round(progress * 100);
+        progressFill.style.width = percentage + '%';
+        progressText.textContent = percentage + '%';
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateProgress);
+        } else {
+            // Hide overlay after recording completes, but keep it visible during processing
+            setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 2000); // Keep overlay visible for 2 seconds after recording to show processing
+        }
+    }
+    
+    requestAnimationFrame(updateProgress);
+}
+
+function showRecordingToast(filename, duration) {
+    const toast = document.getElementById('success-toast');
+    const filenameEl = document.getElementById('toast-filename');
+    const closeBtn = document.getElementById('toast-close');
+    
+    // Set the filename with "processing" message
+    filenameEl.textContent = `${filename} (processing...)`;
+    
+    // Show the toast
+    toast.classList.add('show');
+    
+    // Auto-dismiss after recording duration + 8 seconds (accounting for processing time)
+    const autoDismissTimeout = setTimeout(() => {
+        hideToast();
+    }, (duration * 1000) + 8000);
+    
+    // Close button handler
+    const closeHandler = () => {
+        clearTimeout(autoDismissTimeout);
+        hideToast();
+        closeBtn.removeEventListener('click', closeHandler);
+    };
+    
+    closeBtn.addEventListener('click', closeHandler);
+    
+    function hideToast() {
+        toast.classList.remove('show');
+    }
+}
+
 function showSuccessToast(filename) {
     const toast = document.getElementById('success-toast');
     const filenameEl = document.getElementById('toast-filename');
@@ -1508,10 +1673,10 @@ function showSuccessToast(filename) {
     // Show the toast
     toast.classList.add('show');
     
-    // Auto-dismiss after 4 seconds
+    // Auto-dismiss after 5 seconds
     const autoDismissTimeout = setTimeout(() => {
         hideToast();
-    }, 4000);
+    }, 5000);
     
     // Close button handler
     const closeHandler = () => {
