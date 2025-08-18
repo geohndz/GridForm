@@ -47,7 +47,7 @@ let settings = {
         type: 'ripples',
         speed: 0.02,
         scale: 0.08,
-        color: '#ffffff',
+        color: '#00ff00',
         glow: false
     },
     interactive: {
@@ -58,13 +58,13 @@ let settings = {
         clickEnabled: true
     },
     blend: {
-        mode: 'add',
+        mode: 'multiply',
         amount: 0.5
     }
 };
 
 function setup() {
-    canvas = createCanvas(800, 600);
+    canvas = createCanvas(800, 500);
     canvas.parent('canvas-container');
     
     textAlign(CENTER, CENTER);
@@ -786,5 +786,5 @@ function setupDropdowns() {
 }
 
 function windowResized() {
-    resizeCanvas(800, 600);
+    resizeCanvas(800, 500);
 } 
