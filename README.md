@@ -48,7 +48,7 @@ A dynamic ASCII art generator that creates mesmerizing animated patterns using m
 - **Real-time Preview** - See changes instantly
 - **Play/Pause Controls** - Control animation playback
 - **Randomize Button** - Generate new random patterns
-- **Download Options** - Export as PNG, JPEG, GIF, SVG, or TXT
+- **Download Options** - Export as PNG, JPEG, GIF, or TXT
 
 ### 🎨 **Character Sets**
 - **Blocks** - █▉▊▋▌▍▎▏▒░▓ (traditional ASCII art)
@@ -126,7 +126,6 @@ A dynamic ASCII art generator that creates mesmerizing animated patterns using m
 - **PNG Image** - High-resolution static image export
 - **JPEG Image** - Compressed image format
 - **GIF Animation** - Animated GIF export with perfect loops (60-150 frames)
-- **SVG Vector** - Scalable vector format
 - **Text File** - Raw ASCII text output
 
 #### GIF Export Details

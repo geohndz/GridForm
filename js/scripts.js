@@ -1,6 +1,6 @@
 // GridForm - ASCII Art Animation Generator
 // Features: Multiple pattern types, dual pattern blending, interactive effects, and export options
-// Export formats: PNG, JPEG, GIF (animated), SVG, and text files
+// Export formats: PNG, JPEG, GIF (animated), and text files
 // 
 // ASCII grayscale ramp - from darkest to lightest
 // Each string represents a progression from dark to light characters
