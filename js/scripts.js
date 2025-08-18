@@ -99,6 +99,7 @@ function setup() {
     setupRandomizeButton();
     setupDownloadButton();
     setupResizeHandling();
+    setupTooltips();
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
@@ -1221,6 +1222,51 @@ function setupSpeedButton() {
 
 function applySpeedMultiplier(multiplier) {
     speedMultiplier = multiplier;
+}
+
+function setupTooltips() {
+    const buttons = [
+        { btn: '#play-pause-btn', tooltip: '#play-pause-tooltip' },
+        { btn: '#speed-btn', tooltip: '#speed-tooltip' },
+        { btn: '#randomize-btn', tooltip: '#randomize-tooltip' },
+        { btn: '#download-btn', tooltip: '#download-tooltip' }
+    ];
+    
+    buttons.forEach(({ btn, tooltip }) => {
+        const button = document.querySelector(btn);
+        const tooltipEl = document.querySelector(tooltip);
+        
+        if (!button || !tooltipEl) return;
+        
+        let hoverTimeout;
+        
+        button.addEventListener('mouseenter', (e) => {
+            clearTimeout(hoverTimeout);
+            hoverTimeout = setTimeout(() => {
+                const rect = button.getBoundingClientRect();
+                const tooltipRect = tooltipEl.getBoundingClientRect();
+                
+                // Position tooltip above button, centered
+                const left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                const top = rect.top - tooltipRect.height - 10;
+                
+                tooltipEl.style.left = left + 'px';
+                tooltipEl.style.top = top + 'px';
+                tooltipEl.classList.add('show');
+            }, 300); // 500ms delay before showing
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            clearTimeout(hoverTimeout);
+            tooltipEl.classList.remove('show');
+        });
+        
+        // Hide tooltip when button is clicked
+        button.addEventListener('click', () => {
+            clearTimeout(hoverTimeout);
+            tooltipEl.classList.remove('show');
+        });
+    });
 }
 
 function updateUIFromSettings() {
