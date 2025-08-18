@@ -67,8 +67,7 @@ let settings = {
         speed: 0.01,       // Animation speed multiplier
         scale: 0.05,       // Pattern scale/density
         color: '#ffffff',  // Pattern color (hex)
-        glow: false,       // Whether to apply glow effect
-        rotation: false    // Whether to rotate characters based on pattern value
+        glow: false        // Whether to apply glow effect
     },
     
     // Secondary pattern configuration (for blending)
@@ -78,8 +77,7 @@ let settings = {
         speed: 0.02,       // Animation speed multiplier
         scale: 0.08,       // Pattern scale/density
         color: '#00ff00',  // Pattern color (hex)
-        glow: false,       // Whether to apply glow effect
-        rotation: false    // Whether to rotate characters
+        glow: false        // Whether to apply glow effect
     },
     
     // Interactive effects configuration
@@ -330,25 +328,15 @@ function draw() {
 
     textSize(actualCharSize);
 
-    // Performance optimization: pre-calculate rotation settings
-    let needsRotation = (settings.pattern1.rotation && !settings.pattern2.enabled) || 
-                       (settings.pattern2.enabled && (settings.pattern1.rotation || settings.pattern2.rotation));
-
-    // Performance optimization: batch similar operations
-    if (needsRotation) {
-        // Render with rotation (slower path)
-        renderGridWithRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize);
-    } else {
-        // Render without rotation (fast path)
-        renderGridWithoutRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize);
-    }
+    // Render grid (rotation feature removed for performance)
+    renderGrid(startX, startY, actualCharWidth, actualCharHeight, actualCharSize);
 }
 
 /**
- * Optimized rendering function for grids without character rotation
- * This is the fast path that avoids expensive push/pop/translate/rotate operations
+ * Main rendering function for the ASCII art grid
+ * Character rotation feature removed for better performance
  */
-function renderGridWithoutRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize) {
+function renderGrid(startX, startY, actualCharWidth, actualCharHeight, actualCharSize) {
     // Pre-calculate common values
     let needsGlow = settings.pattern1.glow || (settings.pattern2.enabled && settings.pattern2.glow);
     
@@ -418,92 +406,7 @@ function renderGridWithoutRotation(startX, startY, actualCharWidth, actualCharHe
     }
 }
 
-/**
- * Rendering function for grids with character rotation
- * This is the slower path that handles rotation
- */
-function renderGridWithRotation(startX, startY, actualCharWidth, actualCharHeight, actualCharSize) {
-    for (let x = 0; x < gridCols; x++) {
-        for (let y = 0; y < gridRows; y++) {
-            // Calculate pixel position for this grid cell
-            let xPos = startX + (x + 0.5) * actualCharWidth;
-            let yPos = startY + (y + 0.5) * actualCharHeight;
 
-            // Calculate primary pattern value (0-1 range)
-            let value1 = getPatternValue(x, y, settings.pattern1, time);
-
-            // Initialize final values with primary pattern
-            let finalValue = value1;
-            let finalColor = settings.pattern1.color;
-            let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
-            let glowIntensity2 = 0;
-            let useRamp1 = true;
-            let shouldRotate1 = settings.pattern1.rotation;
-            let shouldRotate2 = false;
-
-            // Add secondary pattern if enabled (pattern blending)
-            if (settings.pattern2.enabled) {
-                let value2 = getPatternValue(x, y, settings.pattern2, time);
-                finalValue = blendValues(value1, value2, settings.blendSettings.mode, settings.blendSettings.amount);
-                glowIntensity2 = settings.pattern2.glow ? value2 : 0;
-
-                // Blend colors from both patterns
-                finalColor = blendColors(
-                    settings.pattern1.color,
-                    settings.pattern2.color,
-                    settings.blendSettings.mode,
-                    value1,
-                    value2,
-                    settings.blendSettings.amount
-                );
-
-                // Decide which character set to use based on blend strength
-                let blendStrength = value1 * value2 * settings.blendSettings.amount;
-                useRamp1 = blendStrength < 0.5;
-                shouldRotate2 = settings.pattern2.rotation;
-            }
-
-            // Apply interactive effects (mouse hover, clicks, etc.)
-            if (settings.interactive.enabled) {
-                finalValue = applyInteractiveEffect(x, y, finalValue);
-            }
-
-            // Apply glow effect if needed
-            let maxGlowIntensity = Math.max(glowIntensity1, glowIntensity2);
-            if (maxGlowIntensity > 0) {
-                let enhancedGlowIntensity = Math.pow(maxGlowIntensity, 0.7);
-                applyGlow(finalColor, enhancedGlowIntensity, actualCharSize);
-            }
-
-            // Set fill color
-            fill(finalColor);
-
-            // Convert pattern value to ASCII character using appropriate character set
-            let selectedRamp = useRamp1 ? currentRamp1 : currentRamp2;
-            let charIndex = Math.floor(map(finalValue, 0, 1, 0, selectedRamp.length - 1));
-            charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
-            let char = selectedRamp[charIndex];
-
-            // Calculate rotation if enabled
-            let rotationAngle = 0;
-            if ((useRamp1 && shouldRotate1) || (!useRamp1 && shouldRotate2)) {
-                // Create rotation based on pattern value and position
-                rotationAngle = finalValue * TWO_PI + (x + y) * 0.1 + time * 2;
-            }
-
-            // Draw character with rotation
-            if (rotationAngle !== 0) {
-                push();
-                translate(xPos, yPos);
-                rotate(rotationAngle);
-                text(char, 0, 0);
-                pop();
-            } else {
-                text(char, xPos, yPos);
-            }
-        }
-    }
-}
 
 /**
  * Updates interactive effects each frame
@@ -528,7 +431,7 @@ function monitorPerformance() {
     if (frameCount % 60 === 0) {
         const currentTime = Date.now();
         const fps = 1000 / (currentTime - lastFrameTime);
-        console.log(`Performance: FPS: ${fps.toFixed(1)}, Grid: ${gridCols}x${gridRows}, Rotation: ${settings.pattern1.rotation || settings.pattern2.rotation}`);
+        console.log(`Performance: FPS: ${fps.toFixed(1)}, Grid: ${gridCols}x${gridRows}`);
     }
 }
 
@@ -1148,9 +1051,7 @@ function setupControls() {
         settings.pattern1.glow = e.target.checked;
     });
 
-    document.getElementById('pattern1Rotation').addEventListener('change', (e) => {
-        settings.pattern1.rotation = e.target.checked;
-    });
+
 
     document.getElementById('pattern1Type').addEventListener('change', (e) => {
         settings.pattern1.type = e.target.value;
@@ -1189,9 +1090,7 @@ function setupControls() {
         settings.pattern2.glow = e.target.checked;
     });
 
-    document.getElementById('pattern2Rotation').addEventListener('change', (e) => {
-        settings.pattern2.rotation = e.target.checked;
-    });
+
 
     document.getElementById('pattern2Type').addEventListener('change', (e) => {
         settings.pattern2.type = e.target.value;
@@ -1541,8 +1440,7 @@ function exportHighResCanvas(filename, ext) {
             let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
             let glowIntensity2 = 0;
             let useRamp1 = true;
-            let shouldRotate1 = settings.pattern1.rotation;
-            let shouldRotate2 = false;
+
 
             if (settings.pattern2.enabled) {
                 let value2 = getPatternValue(x, y, settings.pattern2, time);
@@ -1560,7 +1458,7 @@ function exportHighResCanvas(filename, ext) {
 
                 let blendStrength = value1 * value2 * settings.blendSettings.amount;
                 useRamp1 = blendStrength < 0.5;
-                shouldRotate2 = settings.pattern2.rotation;
+
             }
 
             if (settings.interactive.enabled) {
@@ -1602,20 +1500,7 @@ function exportHighResCanvas(filename, ext) {
             charIndex = constrain(charIndex, 0, selectedRamp.length - 1);
             let char = selectedRamp[charIndex];
 
-            let rotationAngle = 0;
-            if ((useRamp1 && shouldRotate1) || (!useRamp1 && shouldRotate2)) {
-                rotationAngle = finalValue * TWO_PI + (x + y) * 0.1 + time * 2;
-            }
-
-            if (rotationAngle !== 0) {
-                ctx.save();
-                ctx.translate(xPos, yPos);
-                ctx.rotate(rotationAngle);
-                ctx.fillText(char, 0, 0);
-                ctx.restore();
-            } else {
-                ctx.fillText(char, xPos, yPos);
-            }
+            ctx.fillText(char, xPos, yPos);
         }
     }
 
