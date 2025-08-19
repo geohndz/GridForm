@@ -1,9 +1,4 @@
 // GridForm - ASCII Art Animation Generator
-// Features: Multiple pattern types, dual pattern blending, interactive effects, and export options
-// Export formats: PNG, JPEG, GIF (animated), and text files
-// 
-// ASCII grayscale ramp - from darkest to lightest
-// Each string represents a progression from dark to light characters
 const ASCII_RAMPS = {
     blocks: " ░▒▓▌▍▎▏▊▋█",    // Block characters for high contrast
     ascii: " .:-=+*#%@",      // Standard ASCII characters
@@ -405,8 +400,6 @@ function renderGrid(startX, startY, actualCharWidth, actualCharHeight, actualCha
         }
     }
 }
-
-
 
 /**
  * Updates interactive effects each frame
@@ -1051,13 +1044,9 @@ function setupControls() {
         settings.pattern1.glow = e.target.checked;
     });
 
-
-
     document.getElementById('pattern1Type').addEventListener('change', (e) => {
         settings.pattern1.type = e.target.value;
-        if (settings.pattern1.type === 'cellular') {
-            initCellular();
-        } else if (settings.pattern1.type === 'voronoi') {
+        if (settings.pattern1.type === 'voronoi') {
             initVoronoi();
         }
     });
@@ -1089,8 +1078,6 @@ function setupControls() {
     document.getElementById('pattern2Glow').addEventListener('change', (e) => {
         settings.pattern2.glow = e.target.checked;
     });
-
-
 
     document.getElementById('pattern2Type').addEventListener('change', (e) => {
         settings.pattern2.type = e.target.value;
@@ -1138,7 +1125,7 @@ function setupControls() {
     });
 
     // Blending
-    safeAddEventListener('blendMode', 'change', (e) => {
+    safeAddEventListener('blendModeSelect', 'change', (e) => {
         settings.blendSettings.mode = e.target.value;
     });
 
@@ -1274,9 +1261,11 @@ function setupRandomizeButton() {
         const selectedCharSet1 = charSets[Math.floor(Math.random() * charSets.length)];
         currentRamp1 = ASCII_RAMPS[selectedCharSet1];
 
-        // Maybe enable secondary pattern
-        if (Math.random() > 0.4) {
-            settings.pattern2.enabled = true;
+        // Randomize secondary pattern (with proper enable/disable logic)
+        const shouldEnableSecondary = Math.random() > 0.4; // 60% chance to enable
+        settings.pattern2.enabled = shouldEnableSecondary;
+        
+        if (shouldEnableSecondary) {
             settings.pattern2.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
             settings.pattern2.speed = Math.random() * 0.049 + 0.001;
             settings.pattern2.scale = Math.random() * 0.19 + 0.01;
@@ -1293,10 +1282,10 @@ function setupRandomizeButton() {
         }
 
         // Reinitialize special patterns if needed
-        if (settings.pattern1.type === 'cellular' || settings.pattern2.type === 'cellular') {
-            initCellular();
+        if (settings.pattern1.type === 'voronoi') {
+            initVoronoi();
         }
-        if (settings.pattern1.type === 'voronoi' || settings.pattern2.type === 'voronoi') {
+        if (settings.pattern2.enabled && settings.pattern2.type === 'voronoi') {
             initVoronoi();
         }
 
@@ -1440,7 +1429,6 @@ function exportHighResCanvas(filename, ext) {
             let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
             let glowIntensity2 = 0;
             let useRamp1 = true;
-
 
             if (settings.pattern2.enabled) {
                 let value2 = getPatternValue(x, y, settings.pattern2, time);
@@ -1958,7 +1946,7 @@ function updateUIFromSettings() {
     document.getElementById('pattern1Color').value = settings.pattern1.color;
     document.getElementById('pattern1Glow').checked = settings.pattern1.glow;
 
-    // Update character set dropdowns
+    // Update primary character set dropdown
     const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
     const currentCharSet1 = charSets.find(set => ASCII_RAMPS[set] === currentRamp1) || 'blocks';
     document.getElementById('pattern1CharSet').value = currentCharSet1;
@@ -1979,12 +1967,17 @@ function updateUIFromSettings() {
         document.getElementById('pattern2ScaleValue').textContent = settings.pattern2.scale.toFixed(3);
         document.getElementById('pattern2Color').value = settings.pattern2.color;
         document.getElementById('pattern2Glow').checked = settings.pattern2.glow;
-        document.getElementById('blendMode').value = settings.blendSettings.mode;
+        document.getElementById('blendModeSelect').value = settings.blendSettings.mode;
         document.getElementById('blendAmount').value = settings.blendSettings.amount;
         document.getElementById('blendAmountValue').textContent = settings.blendSettings.amount.toFixed(1);
 
         // Update secondary character set dropdown
         const currentCharSet2 = charSets.find(set => ASCII_RAMPS[set] === currentRamp2) || 'blocks';
         document.getElementById('pattern2CharSet').value = currentCharSet2;
+    } else {
+        // Properly disable secondary pattern UI
+        pattern2Toggle.classList.remove('active');
+        pattern2Toggle.textContent = 'Enable Secondary Pattern';
+        pattern2Settings.style.display = 'none';
     }
 }
