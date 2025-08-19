@@ -479,7 +479,8 @@ function monitorPerformance() {
     if (frameCount % 60 === 0) {
         const currentTime = Date.now();
         const fps = 1000 / (currentTime - lastFrameTime);
-        console.log(`Performance: FPS: ${fps.toFixed(1)}, Grid: ${gridCols}x${gridRows}`);
+        // Performance monitoring (commented out to reduce console noise)
+        // console.log(`Performance: FPS: ${fps.toFixed(1)}, Grid: ${gridCols}x${gridRows}`);
     }
 }
 
@@ -1135,7 +1136,8 @@ function setupControls() {
         // Show/hide noise variant dropdown when noise is selected
         const noiseVariantSection = document.getElementById('pattern1NoiseVariantSection');
         if (noiseVariantSection) {
-            noiseVariantSection.style.display = settings.pattern1.type === 'noise' ? 'block' : 'none';
+            const shouldShow = settings.pattern1.type === 'noise';
+            noiseVariantSection.style.display = shouldShow ? 'block' : 'none';
         }
     });
 
@@ -1334,7 +1336,7 @@ function setupControls() {
     safeAddEventListener('targetFpsSelect', 'change', (e) => {
         targetFPS = parseInt(e.target.value);
         frameInterval = 1000 / targetFPS;
-        console.log(`Target FPS changed to: ${targetFPS}`);
+        // console.log(`Target FPS changed to: ${targetFPS}`);
     });
 
     safeAddEventListener('glowQualitySelect', 'change', (e) => {
@@ -2436,7 +2438,8 @@ function updateUIFromSettings() {
     // Show/hide pattern1 noise variant section
     const pattern1NoiseVariantSection = document.getElementById('pattern1NoiseVariantSection');
     if (pattern1NoiseVariantSection) {
-        pattern1NoiseVariantSection.style.display = settings.pattern1.type === 'noise' ? 'block' : 'none';
+        const shouldShow = settings.pattern1.type === 'noise';
+        pattern1NoiseVariantSection.style.display = shouldShow ? 'block' : 'none';
     }
 
     // Update primary character set dropdown
