@@ -220,14 +220,14 @@ h3 {
 
 label {
     display: block;
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
     font-size: var(--font-size-base);
     color: var(--text-secondary);
 }
 
 select, input[type="range"] {
     width: 100%;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     color: var(--text-primary);
@@ -275,6 +275,28 @@ input[type="range"]::-moz-range-track {
     height: 6px;
     background: var(--border-primary);
     border-radius: var(--radius-sm);
+}
+
+/* Checkbox styling for better spacing */
+input[type="checkbox"] {
+    margin-right: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    transform: scale(1.2);
+}
+
+/* Labels with checkboxes need extra spacing */
+label:has(input[type="checkbox"]) {
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-xs) 0;
+}
+
+/* Color input styling */
+input[type="color"] {
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    cursor: pointer;
 }
 
 .toggle-btn {
@@ -330,7 +352,7 @@ input[type="range"]::-moz-range-track {
 
 .dropdown-content {
     display: none;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
 }
 
@@ -342,6 +364,7 @@ input[type="range"]::-moz-range-track {
     font-size: var(--font-size-sm);
     color: var(--text-muted);
     text-align: right;
+    margin-bottom: var(--spacing-md);
 }
 
 .pattern-preview {
