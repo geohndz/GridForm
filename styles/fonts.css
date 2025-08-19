@@ -3,7 +3,7 @@
 /* Font Face Declarations */
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Medium.ttf') format('truetype');
+    src: url('assets/fonts/FeatureMono-Thin.ttf') format('truetype');
     font-weight: 100;
     font-style: normal;
     font-display: swap;
@@ -11,7 +11,7 @@
 
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Hairline.ttf') format('truetype');
+    src: url('assets/fonts/FeatureMono-Hairline.ttf') format('truetype');
     font-weight: 200;
     font-style: normal;
     font-display: swap;
@@ -19,7 +19,7 @@
 
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Light.ttf') format('truetype');
+    src: url('assets/fonts/FeatureMono-Light.ttf') format('truetype');
     font-weight: 300;
     font-style: normal;
     font-display: swap;
@@ -27,7 +27,7 @@
 
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Regular.ttf');
+    src: url('assets/fonts/FeatureMono-Regular.ttf');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -35,7 +35,7 @@
 
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Medium.ttf') format('truetype');
+    src: url('assets/fonts/FeatureMono-Medium.ttf') format('truetype');
     font-weight: 500;
     font-style: normal;
     font-display: swap;
@@ -43,7 +43,7 @@
 
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Bold.ttf') format('truetype');
+    src: url('assets/fonts/FeatureMono-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
     font-display: swap;
@@ -51,7 +51,7 @@
 
 @font-face {
     font-family: 'FeatureMono';
-    src: url('/assets/fonts/FeatureMono-Black.ttf') format('truetype');
+    src: url('assets/fonts/FeatureMono-Black.ttf') format('truetype');
     font-weight: 900;
     font-style: normal;
     font-display: swap;

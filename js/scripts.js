@@ -20,6 +20,18 @@ let currentRamp = ASCII_RAMPS.blocks;  // Legacy variable (deprecated)
 let currentRamp1 = ASCII_RAMPS.blocks; // Character set for primary pattern
 let currentRamp2 = ASCII_RAMPS.blocks; // Character set for secondary pattern
 
+// Predefined color palettes
+const COLOR_PALETTES = {
+    cyberpunk: ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'],
+    retro: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7'],
+    neon: ['#ff0080', '#00ff80', '#0080ff', '#8000ff', '#ff8000'],
+    monochrome: ['#ffffff', '#cccccc', '#999999', '#666666', '#333333', '#000000'],
+    sunset: ['#ff6b35', '#f7931e', '#ffd23f', '#f4a261', '#e76f51'],
+    ocean: ['#006994', '#0099cc', '#00bfff', '#87ceeb', '#b0e0e6'],
+    forest: ['#228b22', '#32cd32', '#90ee90', '#98fb98', '#00ff7f'],
+    fire: ['#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500']
+};
+
 // Canvas and animation state
 let canvas;              // p5.js canvas reference
 let time = 0;            // Animation time counter (increments each frame)
@@ -62,7 +74,8 @@ let settings = {
         speed: 0.01,       // Animation speed multiplier
         scale: 0.05,       // Pattern scale/density
         color: '#ffffff',  // Pattern color (hex)
-        glow: false        // Whether to apply glow effect
+        glow: false,       // Whether to apply glow effect
+        noiseVariant: 'simplex'  // Noise variant: 'simplex', 'turbulence', 'ridged'
     },
     
     // Secondary pattern configuration (for blending)
@@ -72,7 +85,8 @@ let settings = {
         speed: 0.02,       // Animation speed multiplier
         scale: 0.08,       // Pattern scale/density
         color: '#00ff00',  // Pattern color (hex)
-        glow: false        // Whether to apply glow effect
+        glow: false,       // Whether to apply glow effect
+        noiseVariant: 'simplex'  // Noise variant: 'simplex', 'turbulence', 'ridged'
     },
     
     // Interactive effects configuration
@@ -88,6 +102,31 @@ let settings = {
     blendSettings: {
         mode: 'multiply',  // Blend mode: 'add', 'multiply', 'overlay', 'difference', 'screen'
         amount: 0.5        // Blend intensity (0-1)
+    },
+    
+    // Color configuration
+    colors: {
+        // Pattern colors
+        pattern1Color: '#ffffff',  // Primary pattern color
+        pattern2Color: '#00ff00',  // Secondary pattern color (only used when pattern2 is enabled)
+        
+        // Color animation settings
+        animationEnabled: false,   // Whether colors shift over time
+        animationSpeed: 0.01,      // Speed of color transitions
+        animationType: 'hue',      // 'hue', 'saturation', 'brightness', 'rainbow'
+        animationTime: 0,          // Internal time counter for animations
+        
+        // Color palette settings
+        usePalette: false,         // Whether to use predefined palettes
+        currentPalette: 'cyberpunk', // Current palette name
+        paletteColors: [],         // Array of colors from current palette
+        paletteIndex: 0,           // Current color index in palette
+        paletteColorMode: 'single', // 'single', 'cycle', 'random'
+        randomColorTimer: 0,       // Timer for random color changes
+        
+        // Blend mode settings
+        blendMode: 'multiply',     // Blend mode for pattern2
+        blendAmount: 0.5           // Blend intensity (0-1)
     }
 };
 
@@ -120,6 +159,18 @@ function setup() {
     setupDownloadButton();     // Export/download functionality
     setupResizeHandling();     // Controls panel resize functionality
     setupTooltips();           // Button tooltips
+    
+    // Initialize color settings
+    settings.colors.paletteColors = COLOR_PALETTES[settings.colors.currentPalette];
+    settings.pattern1.color = settings.colors.pattern1Color;
+    settings.pattern2.color = settings.colors.pattern2Color;
+    settings.blendSettings.mode = settings.colors.blendMode;
+    settings.blendSettings.amount = settings.colors.blendAmount;
+    
+    // Apply palette colors if palette mode is enabled
+    if (settings.colors.usePalette) {
+        updateColorsFromPalette();
+    }
     
     // Position the floating button group
     updateButtonGroupPosition();
@@ -292,6 +343,10 @@ function draw() {
     
     // Update animation time (adjusted by speed multiplier)
     time += 0.016 * speedMultiplier; // ~60fps with speed multiplier
+
+    // Update colors from animation and palettes
+    updateColorsFromAnimation();
+    updateColorsFromPalette();
 
     // Update interactive effects (click ripples, etc.)
     updateInteractiveEffects();
@@ -524,8 +579,38 @@ function getPatternValue(x, y, pattern, time) {
             break;
 
         case 'noise':
-            // Use Perlin noise for organic, natural-looking patterns
-            value = noise(normalizedX * pattern.scale * 100, normalizedY * pattern.scale * 100, time * pattern.speed * 10) * 2 - 1;
+            // Use different noise variants for organic, natural-looking patterns
+            const noiseVariant = pattern.noiseVariant || 'simplex';
+            switch (noiseVariant) {
+                case 'simplex':
+                    // Standard Perlin noise (simplex-like)
+                    value = noise(normalizedX * pattern.scale * 100, normalizedY * pattern.scale * 100, time * pattern.speed * 10) * 2 - 1;
+                    break;
+                case 'turbulence':
+                    // Turbulence noise - multiple octaves of noise
+                    value = 0;
+                    let amplitude = 1.0;
+                    let frequency = 1.0;
+                    for (let i = 0; i < 4; i++) {
+                        value += amplitude * noise(
+                            normalizedX * pattern.scale * 100 * frequency, 
+                            normalizedY * pattern.scale * 100 * frequency, 
+                            time * pattern.speed * 10 * frequency
+                        );
+                        amplitude *= 0.5;
+                        frequency *= 2.0;
+                    }
+                    value = (value / 1.875) * 2 - 1; // Normalize to -1 to 1
+                    break;
+                case 'ridged':
+                    // Ridged noise - creates sharp ridges and valleys
+                    let baseNoise = noise(normalizedX * pattern.scale * 100, normalizedY * pattern.scale * 100, time * pattern.speed * 10);
+                    value = 1.0 - Math.abs(baseNoise * 2 - 1) * 2 - 1; // Convert to ridged
+                    break;
+                default:
+                    // Fallback to simplex
+                    value = noise(normalizedX * pattern.scale * 100, normalizedY * pattern.scale * 100, time * pattern.speed * 10) * 2 - 1;
+            }
             break;
 
         case 'spiral':
@@ -879,7 +964,7 @@ function blendValues(value1, value2, mode, amount) {
             return value1 < 0.5 ? 2 * value1 * value2 : 1 - 2 * (1 - value1) * (1 - value2);
         case 'difference':
             // Difference blending (shows contrast)
-            return abs(value1 - value2);
+            return Math.abs(value1 - value2);
         case 'screen':
             // Screen blending (lightens)
             return 1 - (1 - value1) * (1 - value2);
@@ -1036,9 +1121,6 @@ function setupControls() {
     });
 
     // Primary Pattern
-    document.getElementById('pattern1Color').addEventListener('input', (e) => {
-        settings.pattern1.color = e.target.value;
-    });
 
     document.getElementById('pattern1Glow').addEventListener('change', (e) => {
         settings.pattern1.glow = e.target.checked;
@@ -1048,6 +1130,12 @@ function setupControls() {
         settings.pattern1.type = e.target.value;
         if (settings.pattern1.type === 'voronoi') {
             initVoronoi();
+        }
+        
+        // Show/hide noise variant dropdown when noise is selected
+        const noiseVariantSection = document.getElementById('pattern1NoiseVariantSection');
+        if (noiseVariantSection) {
+            noiseVariantSection.style.display = settings.pattern1.type === 'noise' ? 'block' : 'none';
         }
     });
 
@@ -1061,6 +1149,11 @@ function setupControls() {
         document.getElementById('pattern1ScaleValue').textContent = e.target.value;
     });
 
+    // Pattern 1 Noise Variant
+    safeAddEventListener('pattern1NoiseVariant', 'change', (e) => {
+        settings.pattern1.noiseVariant = e.target.value;
+    });
+
     // Secondary Pattern
     document.getElementById('pattern2Toggle').addEventListener('click', (e) => {
         settings.pattern2.enabled = !settings.pattern2.enabled;
@@ -1068,12 +1161,19 @@ function setupControls() {
         e.target.textContent = settings.pattern2.enabled ? 'Disable Secondary Pattern' : 'Enable Secondary Pattern';
 
         const pattern2Settings = document.getElementById('pattern2Settings');
+        const pattern2ColorSection = document.getElementById('pattern2ColorSection');
+        const blendModeSection = document.getElementById('blendModeSection');
+        
         pattern2Settings.style.display = settings.pattern2.enabled ? 'block' : 'none';
+        if (pattern2ColorSection) {
+            pattern2ColorSection.style.display = settings.pattern2.enabled ? 'block' : 'none';
+        }
+        if (blendModeSection) {
+            blendModeSection.style.display = settings.pattern2.enabled ? 'block' : 'none';
+        }
     });
 
-    document.getElementById('pattern2Color').addEventListener('input', (e) => {
-        settings.pattern2.color = e.target.value;
-    });
+
 
     document.getElementById('pattern2Glow').addEventListener('change', (e) => {
         settings.pattern2.glow = e.target.checked;
@@ -1081,6 +1181,12 @@ function setupControls() {
 
     document.getElementById('pattern2Type').addEventListener('change', (e) => {
         settings.pattern2.type = e.target.value;
+        
+        // Show/hide noise variant dropdown when noise is selected
+        const noiseVariantSection = document.getElementById('pattern2NoiseVariantSection');
+        if (noiseVariantSection) {
+            noiseVariantSection.style.display = settings.pattern2.type === 'noise' ? 'block' : 'none';
+        }
     });
 
     document.getElementById('pattern2Speed').addEventListener('input', (e) => {
@@ -1091,6 +1197,11 @@ function setupControls() {
     document.getElementById('pattern2Scale').addEventListener('input', (e) => {
         settings.pattern2.scale = parseFloat(e.target.value);
         document.getElementById('pattern2ScaleValue').textContent = e.target.value;
+    });
+
+    // Pattern 2 Noise Variant
+    safeAddEventListener('pattern2NoiseVariant', 'change', (e) => {
+        settings.pattern2.noiseVariant = e.target.value;
     });
 
     // Interactive Effects
@@ -1124,12 +1235,94 @@ function setupControls() {
         settings.interactive.clickEnabled = e.target.checked;
     });
 
-    // Blending
+    // Colors Settings
+    // Pattern Colors
+    safeAddEventListener('pattern1Color', 'input', (e) => {
+        settings.colors.pattern1Color = e.target.value;
+        settings.pattern1.color = e.target.value;
+        // Disable palette and animation when manually changing colors
+        if (settings.colors.usePalette) {
+            settings.colors.usePalette = false;
+            document.getElementById('useColorPalette').checked = false;
+            document.getElementById('colorPaletteSettings').style.display = 'none';
+        }
+        if (settings.colors.animationEnabled) {
+            settings.colors.animationEnabled = false;
+            document.getElementById('colorAnimationEnabled').checked = false;
+            document.getElementById('colorAnimationSettings').style.display = 'none';
+        }
+    });
+
+    safeAddEventListener('pattern2Color', 'input', (e) => {
+        settings.colors.pattern2Color = e.target.value;
+        settings.pattern2.color = e.target.value;
+        // Disable palette and animation when manually changing colors
+        if (settings.colors.usePalette) {
+            settings.colors.usePalette = false;
+            document.getElementById('useColorPalette').checked = false;
+            document.getElementById('colorPaletteSettings').style.display = 'none';
+        }
+        if (settings.colors.animationEnabled) {
+            settings.colors.animationEnabled = false;
+            document.getElementById('colorAnimationEnabled').checked = false;
+            document.getElementById('colorAnimationSettings').style.display = 'none';
+        }
+    });
+
+    // Color Animation
+    safeAddEventListener('colorAnimationEnabled', 'change', (e) => {
+        settings.colors.animationEnabled = e.target.checked;
+        const animationSettings = document.getElementById('colorAnimationSettings');
+        animationSettings.style.display = e.target.checked ? 'block' : 'none';
+    });
+
+    safeAddEventListener('colorAnimationType', 'change', (e) => {
+        settings.colors.animationType = e.target.value;
+    });
+
+    safeAddEventListener('colorAnimationSpeed', 'input', (e) => {
+        settings.colors.animationSpeed = parseFloat(e.target.value);
+        document.getElementById('colorAnimationSpeedValue').textContent = e.target.value;
+    });
+
+    // Color Palettes
+    safeAddEventListener('useColorPalette', 'change', (e) => {
+        settings.colors.usePalette = e.target.checked;
+        const paletteSettings = document.getElementById('colorPaletteSettings');
+        paletteSettings.style.display = e.target.checked ? 'block' : 'none';
+        updatePalettePreview();
+        if (e.target.checked) {
+            updateColorsFromPalette();
+        }
+    });
+
+    safeAddEventListener('colorPaletteSelect', 'change', (e) => {
+        settings.colors.currentPalette = e.target.value;
+        settings.colors.paletteColors = COLOR_PALETTES[e.target.value];
+        settings.colors.paletteIndex = 0;
+        settings.colors.randomColorTimer = 0; // Reset random timer
+        updatePalettePreview();
+        if (settings.colors.usePalette) {
+            updateColorsFromPalette();
+        }
+    });
+
+    safeAddEventListener('paletteColorMode', 'change', (e) => {
+        settings.colors.paletteColorMode = e.target.value;
+        settings.colors.randomColorTimer = 0; // Reset random timer
+        if (settings.colors.usePalette) {
+            updateColorsFromPalette();
+        }
+    });
+
+    // Blend Mode Settings
     safeAddEventListener('blendModeSelect', 'change', (e) => {
+        settings.colors.blendMode = e.target.value;
         settings.blendSettings.mode = e.target.value;
     });
 
     safeAddEventListener('blendAmount', 'input', (e) => {
+        settings.colors.blendAmount = parseFloat(e.target.value);
         settings.blendSettings.amount = parseFloat(e.target.value);
         const blendAmountValueElement = document.getElementById('blendAmountValue');
         if (blendAmountValueElement) {
@@ -1175,6 +1368,7 @@ function setupControls() {
 function setupDropdowns() {
     const dropdownHeaders = [
         'displayHeader',
+        'colorsHeader',
         'pattern1Header',
         'pattern2Header',
         'performanceHeader',
@@ -1183,6 +1377,7 @@ function setupDropdowns() {
 
     const dropdownContents = [
         'displayContent',
+        'colorsContent',
         'pattern1Content',
         'pattern2Content',
         'performanceContent',
@@ -1254,8 +1449,55 @@ function setupRandomizeButton() {
         settings.pattern1.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
         settings.pattern1.speed = Math.random() * 0.049 + 0.001; // 0.001 to 0.05
         settings.pattern1.scale = Math.random() * 0.19 + 0.01; // 0.01 to 0.2
-        settings.pattern1.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
         settings.pattern1.glow = Math.random() > 0.5;
+        
+        // Randomize noise variant if noise is selected
+        if (settings.pattern1.type === 'noise') {
+            const noiseVariants = ['simplex', 'turbulence', 'ridged'];
+            settings.pattern1.noiseVariant = noiseVariants[Math.floor(Math.random() * noiseVariants.length)];
+        }
+        
+        // Randomize color settings - use predefined vibrant colors
+        const vibrantColors = [
+            '#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b', // cyberpunk
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', // retro
+            '#ff0080', '#00ff80', '#0080ff', '#8000ff', '#ff8000', // neon
+            '#ff6b35', '#f7931e', '#ffd23f', '#f4a261', '#e76f51', // sunset
+            '#006994', '#0099cc', '#00bfff', '#87ceeb', '#b0e0e6', // ocean
+            '#228b22', '#32cd32', '#90ee90', '#98fb98', '#00ff7f', // forest
+            '#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500'  // fire
+        ];
+        const randomColor = vibrantColors[Math.floor(Math.random() * vibrantColors.length)];
+        settings.colors.pattern1Color = randomColor;
+        settings.pattern1.color = randomColor;
+        
+        // Randomize color animation (25% chance to enable)
+        settings.colors.animationEnabled = Math.random() > 0.75;
+        if (settings.colors.animationEnabled) {
+            const animationTypes = ['hue', 'saturation', 'brightness', 'rainbow'];
+            settings.colors.animationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
+            settings.colors.animationSpeed = Math.random() * 0.04 + 0.005; // 0.005 to 0.045
+        }
+        
+        // Randomize color palette (35% chance to enable)
+        settings.colors.usePalette = Math.random() > 0.65;
+        if (settings.colors.usePalette) {
+            const paletteNames = Object.keys(COLOR_PALETTES);
+            settings.colors.currentPalette = paletteNames[Math.floor(Math.random() * paletteNames.length)];
+            settings.colors.paletteColors = COLOR_PALETTES[settings.colors.currentPalette];
+            settings.colors.paletteIndex = Math.floor(Math.random() * settings.colors.paletteColors.length);
+            
+            const paletteModes = ['single', 'cycle', 'random'];
+            settings.colors.paletteColorMode = paletteModes[Math.floor(Math.random() * paletteModes.length)];
+        } else {
+            // If not using palette, ensure we have a good default color
+            if (settings.colors.pattern1Color === '#ffffff' || settings.colors.pattern1Color === '#000000') {
+                const fallbackColors = ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'];
+                const fallbackColor = fallbackColors[Math.floor(Math.random() * fallbackColors.length)];
+                settings.colors.pattern1Color = fallbackColor;
+                settings.pattern1.color = fallbackColor;
+            }
+        }
 
         // Randomize primary character set
         const selectedCharSet1 = charSets[Math.floor(Math.random() * charSets.length)];
@@ -1269,18 +1511,53 @@ function setupRandomizeButton() {
             settings.pattern2.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
             settings.pattern2.speed = Math.random() * 0.049 + 0.001;
             settings.pattern2.scale = Math.random() * 0.19 + 0.01;
-            settings.pattern2.color = hslToHex(Math.floor(Math.random() * 360), 70, 60);
             settings.pattern2.glow = Math.random() > 0.5;
-            settings.blendSettings.amount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
+            
+            // Randomize noise variant if noise is selected
+            if (settings.pattern2.type === 'noise') {
+                const noiseVariants = ['simplex', 'turbulence', 'ridged'];
+                settings.pattern2.noiseVariant = noiseVariants[Math.floor(Math.random() * noiseVariants.length)];
+            }
+            
+            // Randomize secondary pattern color - use predefined vibrant colors
+            const vibrantColors2 = [
+                '#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b', // cyberpunk
+                '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', // retro
+                '#ff0080', '#00ff80', '#0080ff', '#8000ff', '#ff8000', // neon
+                '#ff6b35', '#f7931e', '#ffd23f', '#f4a261', '#e76f51', // sunset
+                '#006994', '#0099cc', '#00bfff', '#87ceeb', '#b0e0e6', // ocean
+                '#228b22', '#32cd32', '#90ee90', '#98fb98', '#00ff7f', // forest
+                '#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500'  // fire
+            ];
+            const randomColor2 = vibrantColors2[Math.floor(Math.random() * vibrantColors2.length)];
+            settings.colors.pattern2Color = randomColor2;
+            settings.pattern2.color = randomColor2;
+            
+            // Randomize blend settings
+            settings.colors.blendAmount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
+            settings.blendSettings.amount = settings.colors.blendAmount;
+            
+            const blendModes = ['add', 'multiply', 'overlay', 'difference', 'screen'];
+            settings.colors.blendMode = blendModes[Math.floor(Math.random() * blendModes.length)];
+            settings.blendSettings.mode = settings.colors.blendMode;
 
             // Randomize secondary character set
             const selectedCharSet2 = charSets[Math.floor(Math.random() * charSets.length)];
             currentRamp2 = ASCII_RAMPS[selectedCharSet2];
-
-            const blendModes = ['add', 'multiply', 'overlay', 'difference', 'screen'];
-            settings.blendSettings.mode = blendModes[Math.floor(Math.random() * blendModes.length)];
+            
+            // Ensure secondary pattern has a good color if not using palette
+            if (!settings.colors.usePalette && (settings.colors.pattern2Color === '#ffffff' || settings.colors.pattern2Color === '#000000')) {
+                const fallbackColors2 = ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'];
+                const fallbackColor2 = fallbackColors2[Math.floor(Math.random() * fallbackColors2.length)];
+                settings.colors.pattern2Color = fallbackColor2;
+                settings.pattern2.color = fallbackColor2;
+            }
         }
 
+        // Reset color animation timers
+        settings.colors.animationTime = 0;
+        settings.colors.randomColorTimer = 0;
+        
         // Reinitialize special patterns if needed
         if (settings.pattern1.type === 'voronoi') {
             initVoronoi();
@@ -1936,6 +2213,210 @@ function showSuccessToast(filename) {
     }
 }
 
+// Color helper functions
+function updatePalettePreview() {
+    const preview = document.getElementById('palettePreview');
+    if (!preview) return;
+    
+    const palette = COLOR_PALETTES[settings.colors.currentPalette] || [];
+    preview.innerHTML = '';
+    
+    palette.forEach((color, index) => {
+        const colorBox = document.createElement('div');
+        colorBox.style.width = '20px';
+        colorBox.style.height = '20px';
+        colorBox.style.backgroundColor = color;
+        colorBox.style.border = '1px solid #333';
+        colorBox.style.borderRadius = '3px';
+        colorBox.style.cursor = 'pointer';
+        colorBox.title = color;
+        
+        colorBox.addEventListener('click', () => {
+            settings.colors.paletteIndex = index;
+            if (settings.colors.usePalette) {
+                updateColorsFromPalette();
+            }
+        });
+        
+        preview.appendChild(colorBox);
+    });
+}
+
+function updateColorsFromPalette() {
+    if (!settings.colors.usePalette || !settings.colors.paletteColors.length) return;
+    
+    const palette = settings.colors.paletteColors;
+    const mode = settings.colors.paletteColorMode || 'single';
+    
+    switch (mode) {
+        case 'single':
+            const selectedColor = palette[settings.colors.paletteIndex % palette.length];
+            settings.colors.pattern1Color = selectedColor;
+            settings.pattern1.color = selectedColor;
+            if (settings.pattern2.enabled) {
+                settings.colors.pattern2Color = selectedColor;
+                settings.pattern2.color = selectedColor;
+            }
+            break;
+        case 'cycle':
+            const cycleIndex = Math.floor(settings.colors.animationTime * settings.colors.animationSpeed) % palette.length;
+            settings.colors.pattern1Color = palette[cycleIndex];
+            settings.pattern1.color = palette[cycleIndex];
+            if (settings.pattern2.enabled) {
+                const cycleIndex2 = (cycleIndex + Math.floor(palette.length / 2)) % palette.length;
+                settings.colors.pattern2Color = palette[cycleIndex2];
+                settings.pattern2.color = palette[cycleIndex2];
+            }
+            break;
+        case 'random':
+            // Update random color timer
+            settings.colors.randomColorTimer += 0.016 * speedMultiplier;
+            
+            // Change colors every 2 seconds
+            if (settings.colors.randomColorTimer >= 2.0) {
+                const randomIndex = Math.floor(Math.random() * palette.length);
+                settings.colors.pattern1Color = palette[randomIndex];
+                settings.pattern1.color = palette[randomIndex];
+                if (settings.pattern2.enabled) {
+                    const randomIndex2 = Math.floor(Math.random() * palette.length);
+                    settings.colors.pattern2Color = palette[randomIndex2];
+                    settings.pattern2.color = palette[randomIndex2];
+                }
+                settings.colors.randomColorTimer = 0; // Reset timer
+            }
+            break;
+    }
+    
+    // Update UI color inputs only if palette is active
+    if (settings.colors.usePalette) {
+        const pattern1ColorInput = document.getElementById('pattern1Color');
+        const pattern2ColorInput = document.getElementById('pattern2Color');
+        if (pattern1ColorInput) pattern1ColorInput.value = settings.colors.pattern1Color;
+        if (pattern2ColorInput) pattern2ColorInput.value = settings.colors.pattern2Color;
+    }
+}
+
+function updateColorsFromAnimation() {
+    if (!settings.colors.animationEnabled) return;
+    
+    // Update internal animation time
+    settings.colors.animationTime += 0.016 * speedMultiplier;
+    
+    const baseColor = settings.colors.pattern1Color;
+    const type = settings.colors.animationType;
+    const speed = settings.colors.animationSpeed;
+    
+    let animatedColor = baseColor;
+    
+    switch (type) {
+        case 'hue':
+            animatedColor = shiftHue(baseColor, settings.colors.animationTime * speed);
+            break;
+        case 'saturation':
+            animatedColor = shiftSaturation(baseColor, settings.colors.animationTime * speed);
+            break;
+        case 'brightness':
+            animatedColor = shiftBrightness(baseColor, settings.colors.animationTime * speed);
+            break;
+        case 'rainbow':
+            animatedColor = rainbowColor(settings.colors.animationTime * speed);
+            break;
+    }
+    
+    settings.pattern1.color = animatedColor;
+    if (settings.pattern2.enabled) {
+        settings.pattern2.color = animatedColor;
+    }
+}
+
+function shiftHue(color, amount) {
+    // Convert hex to HSL, shift hue, convert back
+    const hsl = hexToHsl(color);
+    hsl.h = (hsl.h + amount * 360) % 360;
+    return hslToHex(hsl);
+}
+
+function shiftSaturation(color, amount) {
+    const hsl = hexToHsl(color);
+    hsl.s = Math.max(0, Math.min(100, hsl.s + Math.sin(amount) * 50));
+    return hslToHex(hsl);
+}
+
+function shiftBrightness(color, amount) {
+    const hsl = hexToHsl(color);
+    hsl.l = Math.max(0, Math.min(100, hsl.l + Math.sin(amount) * 30));
+    return hslToHex(hsl);
+}
+
+function rainbowColor(amount) {
+    const hue = (amount * 360) % 360;
+    return hslToHex({ h: hue, s: 100, l: 50 });
+}
+
+function hexToHsl(hex) {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Parse RGB values
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    
+    return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToHex(hsl) {
+    const h = hsl.h / 360;
+    const s = hsl.s / 100;
+    const l = hsl.l / 100;
+    
+    let r, g, b;
+    
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    const toHex = (c) => {
+        const hex = Math.round(c * 255).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 function updateUIFromSettings() {
     // Update all UI controls to match current settings
     document.getElementById('pattern1Type').value = settings.pattern1.type;
@@ -1943,8 +2424,20 @@ function updateUIFromSettings() {
     document.getElementById('pattern1SpeedValue').textContent = settings.pattern1.speed.toFixed(3);
     document.getElementById('pattern1Scale').value = settings.pattern1.scale;
     document.getElementById('pattern1ScaleValue').textContent = settings.pattern1.scale.toFixed(3);
-    document.getElementById('pattern1Color').value = settings.pattern1.color;
+    document.getElementById('pattern1Color').value = settings.colors.pattern1Color;
     document.getElementById('pattern1Glow').checked = settings.pattern1.glow;
+    
+    // Update pattern1 noise variant
+    const pattern1NoiseVariant = document.getElementById('pattern1NoiseVariant');
+    if (pattern1NoiseVariant) {
+        pattern1NoiseVariant.value = settings.pattern1.noiseVariant || 'simplex';
+    }
+    
+    // Show/hide pattern1 noise variant section
+    const pattern1NoiseVariantSection = document.getElementById('pattern1NoiseVariantSection');
+    if (pattern1NoiseVariantSection) {
+        pattern1NoiseVariantSection.style.display = settings.pattern1.type === 'noise' ? 'block' : 'none';
+    }
 
     // Update primary character set dropdown
     const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
@@ -1965,11 +2458,23 @@ function updateUIFromSettings() {
         document.getElementById('pattern2SpeedValue').textContent = settings.pattern2.speed.toFixed(3);
         document.getElementById('pattern2Scale').value = settings.pattern2.scale;
         document.getElementById('pattern2ScaleValue').textContent = settings.pattern2.scale.toFixed(3);
-        document.getElementById('pattern2Color').value = settings.pattern2.color;
+        document.getElementById('pattern2Color').value = settings.colors.pattern2Color;
         document.getElementById('pattern2Glow').checked = settings.pattern2.glow;
-        document.getElementById('blendModeSelect').value = settings.blendSettings.mode;
-        document.getElementById('blendAmount').value = settings.blendSettings.amount;
-        document.getElementById('blendAmountValue').textContent = settings.blendSettings.amount.toFixed(1);
+        
+        // Update pattern2 noise variant
+        const pattern2NoiseVariant = document.getElementById('pattern2NoiseVariant');
+        if (pattern2NoiseVariant) {
+            pattern2NoiseVariant.value = settings.pattern2.noiseVariant || 'simplex';
+        }
+        
+        // Show/hide pattern2 noise variant section
+        const pattern2NoiseVariantSection = document.getElementById('pattern2NoiseVariantSection');
+        if (pattern2NoiseVariantSection) {
+            pattern2NoiseVariantSection.style.display = settings.pattern2.type === 'noise' ? 'block' : 'none';
+        }
+        document.getElementById('blendModeSelect').value = settings.colors.blendMode;
+        document.getElementById('blendAmount').value = settings.colors.blendAmount;
+        document.getElementById('blendAmountValue').textContent = settings.colors.blendAmount.toFixed(1);
 
         // Update secondary character set dropdown
         const currentCharSet2 = charSets.find(set => ASCII_RAMPS[set] === currentRamp2) || 'blocks';
@@ -1980,4 +2485,39 @@ function updateUIFromSettings() {
         pattern2Toggle.textContent = 'Enable Secondary Pattern';
         pattern2Settings.style.display = 'none';
     }
+    
+    // Update Colors UI
+    document.getElementById('colorAnimationEnabled').checked = settings.colors.animationEnabled;
+    document.getElementById('colorAnimationType').value = settings.colors.animationType;
+    document.getElementById('colorAnimationSpeed').value = settings.colors.animationSpeed;
+    document.getElementById('colorAnimationSpeedValue').textContent = settings.colors.animationSpeed.toFixed(3);
+    
+    document.getElementById('useColorPalette').checked = settings.colors.usePalette;
+    document.getElementById('colorPaletteSelect').value = settings.colors.currentPalette;
+    document.getElementById('paletteColorMode').value = settings.colors.paletteColorMode || 'single';
+    
+    // Show/hide color animation settings
+    const animationSettings = document.getElementById('colorAnimationSettings');
+    if (animationSettings) {
+        animationSettings.style.display = settings.colors.animationEnabled ? 'block' : 'none';
+    }
+    
+    // Show/hide color palette settings
+    const paletteSettings = document.getElementById('colorPaletteSettings');
+    if (paletteSettings) {
+        paletteSettings.style.display = settings.colors.usePalette ? 'block' : 'none';
+    }
+    
+    // Show/hide pattern2 color section and blend mode section
+    const pattern2ColorSection = document.getElementById('pattern2ColorSection');
+    const blendModeSection = document.getElementById('blendModeSection');
+    if (pattern2ColorSection) {
+        pattern2ColorSection.style.display = settings.pattern2.enabled ? 'block' : 'none';
+    }
+    if (blendModeSection) {
+        blendModeSection.style.display = settings.pattern2.enabled ? 'block' : 'none';
+    }
+    
+    // Update palette preview
+    updatePalettePreview();
 }

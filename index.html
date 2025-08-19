@@ -148,15 +148,97 @@
             </div>
 
             <div class="control-group">
+                <div class="dropdown-header" id="colorsHeader">
+                    <span>Colors</span>
+                    <span class="dropdown-arrow">▶</span>
+                </div>
+                <div class="dropdown-content" id="colorsContent">
+                    <!-- Pattern Colors -->
+                    <label>Primary Pattern Color</label>
+                    <input type="color" id="pattern1Color" value="#ffffff"
+                        style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
+
+                    <div id="pattern2ColorSection" style="display: none;">
+                        <label>Secondary Pattern Color</label>
+                        <input type="color" id="pattern2Color" value="#00ff00"
+                            style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
+                    </div>
+
+                    <!-- Color Animation -->
+                    <label>
+                        <input type="checkbox" id="colorAnimationEnabled" style="margin-right: 8px; accent-color: #ffffff;">
+                        Color Animation
+                    </label>
+
+                    <div id="colorAnimationSettings" style="display: none;">
+                        <label>Animation Type</label>
+                        <select id="colorAnimationType">
+                            <option value="hue">Hue Shift</option>
+                            <option value="saturation">Saturation Shift</option>
+                            <option value="brightness">Brightness Shift</option>
+                            <option value="rainbow">Rainbow Cycle</option>
+                        </select>
+
+                        <label>Animation Speed</label>
+                        <input type="range" id="colorAnimationSpeed" min="0.001" max="0.05" value="0.01" step="0.001">
+                        <div class="value-display" id="colorAnimationSpeedValue">0.01</div>
+                    </div>
+
+                    <!-- Color Palettes -->
+                    <label>
+                        <input type="checkbox" id="useColorPalette" style="margin-right: 8px; accent-color: #ffffff;">
+                        Use Color Palette
+                    </label>
+
+                    <div id="colorPaletteSettings" style="display: none;">
+                        <label>Palette</label>
+                        <select id="colorPaletteSelect">
+                            <option value="cyberpunk">Cyberpunk</option>
+                            <option value="retro">Retro</option>
+                            <option value="neon">Neon</option>
+                            <option value="monochrome">Monochrome</option>
+                            <option value="sunset">Sunset</option>
+                            <option value="ocean">Ocean</option>
+                            <option value="forest">Forest</option>
+                            <option value="fire">Fire</option>
+                        </select>
+
+                        <div id="palettePreview" style="margin: 10px 0; display: flex; gap: 5px; flex-wrap: wrap;">
+                            <!-- Palette colors will be displayed here -->
+                        </div>
+
+                        <label>Color Selection</label>
+                        <select id="paletteColorMode">
+                            <option value="single">Single Color</option>
+                            <option value="cycle">Cycle Through Colors</option>
+                            <option value="random">Random Colors</option>
+                        </select>
+                    </div>
+
+                    <!-- Blend Mode Settings -->
+                    <div id="blendModeSection" style="display: none;">
+                        <label>Blend Mode</label>
+                        <select id="blendModeSelect">
+                            <option value="add">Add</option>
+                            <option value="multiply" selected>Multiply</option>
+                            <option value="overlay">Overlay</option>
+                            <option value="difference">Difference</option>
+                            <option value="screen">Screen</option>
+                        </select>
+
+                        <label>Blend Amount</label>
+                        <input type="range" id="blendAmount" min="0" max="1" value="0.5" step="0.1">
+                        <div class="value-display" id="blendAmountValue">0.5</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
                 <div class="dropdown-header" id="pattern1Header">
                     <span>Primary Pattern</span>
                     <span class="dropdown-arrow">▶</span>
                 </div>
                 <div class="dropdown-content" id="pattern1Content">
-                    <label>Color</label>
-                    <input type="color" id="pattern1Color" value="#ffffff"
-                        style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer;">
-
                     <label>
                         <input type="checkbox" id="pattern1Glow" style="margin-right: 8px; accent-color: #ffffff;">
                         Progressive Glow
@@ -179,6 +261,15 @@
                         <option value="tunnel">Tunnel</option>
                         <option value="mosaic">Mosaic</option>
                     </select>
+
+                    <div id="pattern1NoiseVariantSection" style="display: none;">
+                        <label>Noise Variant</label>
+                        <select id="pattern1NoiseVariant">
+                            <option value="simplex">Simplex</option>
+                            <option value="turbulence">Turbulence</option>
+                            <option value="ridged">Ridged</option>
+                        </select>
+                    </div>
 
                     <label>Character Set</label>
                     <select id="pattern1CharSet">
@@ -217,10 +308,6 @@
                     <button class="toggle-btn" id="pattern2Toggle">Enable Secondary Pattern</button>
 
                     <div id="pattern2Settings" style="display: none;">
-                        <label>Color</label>
-                        <input type="color" id="pattern2Color" value="#00ff00"
-                            style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
-
                         <label>
                             <input type="checkbox" id="pattern2Glow" style="margin-right: 8px; accent-color: #ffffff;">
                             Progressive Glow
@@ -243,6 +330,15 @@
                             <option value="tunnel">Tunnel</option>
                             <option value="mosaic">Mosaic</option>
                         </select>
+
+                        <div id="pattern2NoiseVariantSection" style="display: none;">
+                            <label>Noise Variant</label>
+                            <select id="pattern2NoiseVariant">
+                                <option value="simplex">Simplex</option>
+                                <option value="turbulence">Turbulence</option>
+                                <option value="ridged">Ridged</option>
+                            </select>
+                        </div>
 
                         <label>Character Set</label>
                         <select id="pattern2CharSet">
@@ -269,19 +365,6 @@
                         <label>Scale</label>
                         <input type="range" id="pattern2Scale" min="0.01" max="0.2" value="0.08" step="0.005">
                         <div class="value-display" id="pattern2ScaleValue">0.08</div>
-
-                        <label>Blend Mode</label>
-                        <select id="blendModeSelect">
-                            <option value="add">Add</option>
-                            <option value="multiply" selected>Multiply</option>
-                            <option value="overlay">Overlay</option>
-                            <option value="difference">Difference</option>
-                            <option value="screen">Screen</option>
-                        </select>
-
-                        <label>Secondary Opacity</label>
-                        <input type="range" id="blendAmount" min="0" max="1" value="0.5" step="0.1">
-                        <div class="value-display" id="blendAmountValue">0.5</div>
                     </div>
                 </div>
             </div>
