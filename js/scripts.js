@@ -1132,13 +1132,6 @@ function setupControls() {
         if (settings.pattern1.type === 'voronoi') {
             initVoronoi();
         }
-        
-        // Show/hide noise variant dropdown when noise is selected
-        const noiseVariantSection = document.getElementById('pattern1NoiseVariantSection');
-        if (noiseVariantSection) {
-            const shouldShow = settings.pattern1.type === 'noise';
-            noiseVariantSection.style.display = shouldShow ? 'block' : 'none';
-        }
     });
 
     document.getElementById('pattern1Speed').addEventListener('input', (e) => {
@@ -1183,12 +1176,6 @@ function setupControls() {
 
     document.getElementById('pattern2Type').addEventListener('change', (e) => {
         settings.pattern2.type = e.target.value;
-        
-        // Show/hide noise variant dropdown when noise is selected
-        const noiseVariantSection = document.getElementById('pattern2NoiseVariantSection');
-        if (noiseVariantSection) {
-            noiseVariantSection.style.display = settings.pattern2.type === 'noise' ? 'block' : 'none';
-        }
     });
 
     document.getElementById('pattern2Speed').addEventListener('input', (e) => {
@@ -2434,13 +2421,6 @@ function updateUIFromSettings() {
     if (pattern1NoiseVariant) {
         pattern1NoiseVariant.value = settings.pattern1.noiseVariant || 'simplex';
     }
-    
-    // Show/hide pattern1 noise variant section
-    const pattern1NoiseVariantSection = document.getElementById('pattern1NoiseVariantSection');
-    if (pattern1NoiseVariantSection) {
-        const shouldShow = settings.pattern1.type === 'noise';
-        pattern1NoiseVariantSection.style.display = shouldShow ? 'block' : 'none';
-    }
 
     // Update primary character set dropdown
     const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
@@ -2470,11 +2450,6 @@ function updateUIFromSettings() {
             pattern2NoiseVariant.value = settings.pattern2.noiseVariant || 'simplex';
         }
         
-        // Show/hide pattern2 noise variant section
-        const pattern2NoiseVariantSection = document.getElementById('pattern2NoiseVariantSection');
-        if (pattern2NoiseVariantSection) {
-            pattern2NoiseVariantSection.style.display = settings.pattern2.type === 'noise' ? 'block' : 'none';
-        }
         document.getElementById('blendModeSelect').value = settings.colors.blendMode;
         document.getElementById('blendAmount').value = settings.colors.blendAmount;
         document.getElementById('blendAmountValue').textContent = settings.colors.blendAmount.toFixed(1);
