@@ -1777,6 +1777,12 @@ function exportHighResCanvas(filename, ext) {
         
             document.body.appendChild(a);
             a.click();
+
+            gtag('event', 'file_download', {
+                'event_category': 'engagement',
+                'event_label': `gridform_${ext}`,
+                'value': 1
+            });
         
             // Add this line to show the success toast
             showSuccessToast(`${filename}.${ext}`);
@@ -1864,7 +1870,7 @@ function exportGifAnimation(filename) {
     // Use shorter durations for faster downloads and smaller files
     // Focus on creating perfect loops rather than long animations
     let duration = 1.0; // Duration in seconds
-    
+
     // Adjust based on pattern type for better loops
     if (settings.pattern1.type === 'waves' || settings.pattern1.type === 'ripples') {
         duration = 1.0; // 1 second for smooth oscillations
@@ -1882,16 +1888,23 @@ function exportGifAnimation(filename) {
         // Show a brief message that recording is starting
         console.log(`Starting GIF recording: ${filename}.gif (${duration}s duration)`);
         console.log('Note: Processing may take several seconds after recording completes');
-        
+
         // Show progress overlay and start recording
         showGifProgressOverlay(duration);
-        
+
         // Create a custom GIF recording with proper grid dimensions
         createCustomGif(filename, duration);
-        
+
         // Show a "will download soon" toast to set expectations
         showRecordingToast(`${filename}.gif`, duration);
-        
+
+        // Track GIF download attempt
+        gtag('event', 'file_download', {
+            'event_category': 'engagement',
+            'event_label': 'gridform_gif',
+            'value': 1
+        });
+
     } catch (error) {
         console.error('GIF export failed:', error);
         alert('GIF export failed. Please try again. Make sure your browser supports the required features.');
@@ -1991,6 +2004,13 @@ function exportTextFile(filename) {
 
         document.body.appendChild(a);
         a.click();
+
+        gtag('event', 'file_download', {
+            'event_category': 'engagement',
+            'event_label': 'gridform_txt',
+            'value': 1
+        });
+
         showSuccessToast(filename + '.txt');
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
