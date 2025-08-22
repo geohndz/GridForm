@@ -1430,6 +1430,12 @@ function setupRandomizeButton() {
     const randomizeBtn = document.getElementById('randomize-btn');
 
     randomizeBtn.addEventListener('click', () => {
+        // Track randomize button click
+    gtag('event', 'randomize_click', {
+        'event_category': 'engagement',
+        'event_label': 'pattern_randomize',
+        'value': 1
+    });
         // Randomize pattern types
         const patternTypes = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'voronoi', 'tunnel', 'mosaic'];
         const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
