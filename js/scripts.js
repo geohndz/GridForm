@@ -113,6 +113,25 @@ let settings = {
         pattern1Color: '#ffffff',  // Primary pattern color
         pattern2Color: '#00ff00',  // Secondary pattern color (only used when pattern2 is enabled)
         
+        // Lock settings - controls what gets randomized
+        locks: {
+            backgroundColor: false,    // Lock background color
+            pattern1Color: false,      // Lock primary pattern color
+            pattern2Color: false,      // Lock secondary pattern color
+            pattern1Type: false,       // Lock primary pattern type
+            pattern2Type: false,       // Lock secondary pattern type
+            pattern1Speed: false,      // Lock primary pattern speed
+            pattern2Speed: false,      // Lock secondary pattern speed
+            pattern1Scale: false,      // Lock primary pattern scale
+            pattern2Scale: false,      // Lock secondary pattern scale
+            charSize: false,           // Lock character size
+            gridCols: false,           // Lock grid columns
+            gridRows: false,           // Lock grid rows
+            colorAnimation: false,     // Lock color animation settings
+            colorPalette: false,       // Lock color palette settings
+            secondaryPattern: false    // Lock secondary pattern enable/disable
+        },
+        
         // Color animation settings
         animationEnabled: false,   // Whether colors shift over time
         animationSpeed: 0.01,      // Speed of color transitions
@@ -159,6 +178,7 @@ function setup() {
     setupPlayPauseButton();    // Play/pause button functionality
     setupSpeedButton();        // Speed control button
     setupRandomizeButton();    // Randomize settings button
+    setupIndividualLockButtons(); // Individual lock buttons
     setupDownloadButton();     // Export/download functionality
     setupResizeHandling();     // Controls panel resize functionality
     setupTooltips();           // Button tooltips
@@ -1453,10 +1473,16 @@ function setupRandomizeButton() {
         const patternTypes = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 'stripes', 'plasma', 'mandelbrot', 'julia', 'voronoi', 'tunnel', 'mosaic'];
         const charSets = ['blocks', 'ascii', 'hex', 'numbers', 'letters', 'symbols', 'braille'];
 
-        // Randomize primary pattern
-        settings.pattern1.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
-        settings.pattern1.speed = Math.random() * 0.049 + 0.001; // 0.001 to 0.05
-        settings.pattern1.scale = Math.random() * 0.19 + 0.01; // 0.01 to 0.2
+        // Randomize primary pattern (respect locks)
+        if (!settings.colors.locks.pattern1Type) {
+            settings.pattern1.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
+        }
+        if (!settings.colors.locks.pattern1Speed) {
+            settings.pattern1.speed = Math.random() * 0.049 + 0.001; // 0.001 to 0.05
+        }
+        if (!settings.colors.locks.pattern1Scale) {
+            settings.pattern1.scale = Math.random() * 0.19 + 0.01; // 0.01 to 0.2
+        }
         settings.pattern1.glow = Math.random() > 0.5;
         
         // Randomize noise variant if noise is selected
@@ -1475,9 +1501,11 @@ function setupRandomizeButton() {
             '#228b22', '#32cd32', '#90ee90', '#98fb98', '#00ff7f', // forest
             '#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500'  // fire
         ];
-        const randomColor = vibrantColors[Math.floor(Math.random() * vibrantColors.length)];
-        settings.colors.pattern1Color = randomColor;
-        settings.pattern1.color = randomColor;
+        if (!settings.colors.locks.pattern1Color) {
+            const randomColor = vibrantColors[Math.floor(Math.random() * vibrantColors.length)];
+            settings.colors.pattern1Color = randomColor;
+            settings.pattern1.color = randomColor;
+        }
         
         // Randomize background color - full spectrum of colors
         const backgroundColors = [
@@ -1497,34 +1525,40 @@ function setupRandomizeButton() {
             // Warm colors
             '#ff6347', '#ff4500', '#ff8c00', '#ffa500', '#ffd700', '#ffff00', '#adff2f', '#7fff00', '#32cd32', '#00ff00'
         ];
-        const randomBackgroundColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
-        settings.colors.backgroundColor = randomBackgroundColor;
-        
-        // Randomize color animation (25% chance to enable)
-        settings.colors.animationEnabled = Math.random() > 0.75;
-        if (settings.colors.animationEnabled) {
-            const animationTypes = ['hue', 'saturation', 'brightness', 'rainbow'];
-            settings.colors.animationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
-            settings.colors.animationSpeed = Math.random() * 0.04 + 0.005; // 0.005 to 0.045
+        if (!settings.colors.locks.backgroundColor) {
+            const randomBackgroundColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+            settings.colors.backgroundColor = randomBackgroundColor;
         }
         
-        // Randomize color palette (35% chance to enable)
-        settings.colors.usePalette = Math.random() > 0.65;
-        if (settings.colors.usePalette) {
-            const paletteNames = Object.keys(COLOR_PALETTES);
-            settings.colors.currentPalette = paletteNames[Math.floor(Math.random() * paletteNames.length)];
-            settings.colors.paletteColors = COLOR_PALETTES[settings.colors.currentPalette];
-            settings.colors.paletteIndex = Math.floor(Math.random() * settings.colors.paletteColors.length);
-            
-            const paletteModes = ['single', 'cycle', 'random'];
-            settings.colors.paletteColorMode = paletteModes[Math.floor(Math.random() * paletteModes.length)];
-        } else {
-            // If not using palette, ensure we have a good default color
-            if (settings.colors.pattern1Color === '#ffffff' || settings.colors.pattern1Color === '#000000') {
-                const fallbackColors = ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'];
-                const fallbackColor = fallbackColors[Math.floor(Math.random() * fallbackColors.length)];
-                settings.colors.pattern1Color = fallbackColor;
-                settings.pattern1.color = fallbackColor;
+        // Randomize color animation (25% chance to enable, respect locks)
+        if (!settings.colors.locks.colorAnimation) {
+            settings.colors.animationEnabled = Math.random() > 0.75;
+            if (settings.colors.animationEnabled) {
+                const animationTypes = ['hue', 'saturation', 'brightness', 'rainbow'];
+                settings.colors.animationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
+                settings.colors.animationSpeed = Math.random() * 0.04 + 0.005; // 0.005 to 0.045
+            }
+        }
+        
+        // Randomize color palette (35% chance to enable, respect locks)
+        if (!settings.colors.locks.colorPalette) {
+            settings.colors.usePalette = Math.random() > 0.65;
+            if (settings.colors.usePalette) {
+                const paletteNames = Object.keys(COLOR_PALETTES);
+                settings.colors.currentPalette = paletteNames[Math.floor(Math.random() * paletteNames.length)];
+                settings.colors.paletteColors = COLOR_PALETTES[settings.colors.currentPalette];
+                settings.colors.paletteIndex = Math.floor(Math.random() * settings.colors.paletteColors.length);
+                
+                const paletteModes = ['single', 'cycle', 'random'];
+                settings.colors.paletteColorMode = paletteModes[Math.floor(Math.random() * paletteModes.length)];
+            } else {
+                // If not using palette, ensure we have a good default color
+                if (!settings.colors.locks.pattern1Color && (settings.colors.pattern1Color === '#ffffff' || settings.colors.pattern1Color === '#000000')) {
+                    const fallbackColors = ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'];
+                    const fallbackColor = fallbackColors[Math.floor(Math.random() * fallbackColors.length)];
+                    settings.colors.pattern1Color = fallbackColor;
+                    settings.pattern1.color = fallbackColor;
+                }
             }
         }
 
@@ -1598,6 +1632,93 @@ function setupRandomizeButton() {
         // Update UI to reflect changes
         updateUIFromSettings();
     });
+}
+
+
+
+function setupIndividualLockButtons() {
+    const lockButtons = document.querySelectorAll('.lock-btn');
+    
+    lockButtons.forEach(button => {
+        const setting = button.getAttribute('data-setting');
+        if (!setting) return;
+        
+        // Update initial appearance
+        updateLockButtonAppearance(button, setting);
+        
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Toggle lock state for this specific setting
+            settings.colors.locks[setting] = !settings.colors.locks[setting];
+            
+            // Update this button's appearance
+            updateLockButtonAppearance(button, setting);
+            
+            // Show feedback
+            const settingName = getSettingDisplayName(setting);
+            if (settings.colors.locks[setting]) {
+                showToast(`${settingName} locked from randomization`, 'info');
+            } else {
+                showToast(`${settingName} unlocked for randomization`, 'info');
+            }
+        });
+    });
+}
+
+function updateLockButtonAppearance(button, setting) {
+    const isLocked = settings.colors.locks[setting];
+    
+    if (isLocked) {
+        button.classList.add('locked');
+        button.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+        `;
+    } else {
+        button.classList.remove('locked');
+        button.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+        `;
+    }
+}
+
+function updateAllLockButtonAppearances() {
+    const lockButtons = document.querySelectorAll('.lock-btn');
+    
+    lockButtons.forEach(button => {
+        const setting = button.getAttribute('data-setting');
+        if (setting) {
+            updateLockButtonAppearance(button, setting);
+        }
+    });
+}
+
+function getSettingDisplayName(setting) {
+    const displayNames = {
+        backgroundColor: 'Background Color',
+        pattern1Color: 'Primary Pattern Color',
+        pattern2Color: 'Secondary Pattern Color',
+        pattern1Type: 'Primary Pattern Type',
+        pattern2Type: 'Secondary Pattern Type',
+        pattern1Speed: 'Primary Pattern Speed',
+        pattern2Speed: 'Secondary Pattern Speed',
+        pattern1Scale: 'Primary Pattern Scale',
+        pattern2Scale: 'Secondary Pattern Scale',
+        charSize: 'Character Size',
+        gridCols: 'Grid Columns',
+        gridRows: 'Grid Rows',
+        charSpacing: 'Character Spacing',
+        colorAnimation: 'Color Animation',
+        colorPalette: 'Color Palette',
+        secondaryPattern: 'Secondary Pattern'
+    };
+    
+    return displayNames[setting] || setting;
 }
 
 function setupDownloadButton() {
@@ -2289,6 +2410,45 @@ function updatePalettePreview() {
         
         preview.appendChild(colorBox);
     });
+}
+
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #333;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 4px;
+        z-index: 10000;
+        font-family: var(--font-family-primary);
+        font-size: 14px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
 }
 
 function updateBackgroundColor() {

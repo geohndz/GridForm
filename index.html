@@ -164,17 +164,38 @@
                 </div>
                 <div class="dropdown-content" id="colorsContent">
                     <!-- Background Color -->
-                    <label>Background Color</label>
+                    <label class="setting-label">
+                        Background Color
+                        <button class="lock-btn" data-setting="backgroundColor" title="Lock/Unlock Background Color">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        </button>
+                    </label>
                     <input type="color" id="backgroundColor" value="#000000"
                         style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
 
                     <!-- Pattern Colors -->
-                    <label>Primary Pattern Color</label>
+                    <label class="setting-label">
+                        Primary Pattern Color
+                        <button class="lock-btn" data-setting="pattern1Color" title="Lock/Unlock Primary Pattern Color">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        </button>
+                    </label>
                     <input type="color" id="pattern1Color" value="#ffffff"
                         style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
 
                     <div id="pattern2ColorSection" style="display: none;">
-                        <label>Secondary Pattern Color</label>
+                        <label class="setting-label">
+                            Secondary Pattern Color
+                            <button class="lock-btn" data-setting="pattern2Color" title="Lock/Unlock Secondary Pattern Color">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                </svg>
+                            </button>
+                        </label>
                         <input type="color" id="pattern2Color" value="#00ff00"
                             style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
                     </div>
@@ -259,7 +280,14 @@
                         Progressive Glow
                     </label>
 
-                    <label>Pattern Type</label>
+                    <label class="setting-label">
+                        Pattern Type
+                        <button class="lock-btn" data-setting="pattern1Type" title="Lock/Unlock Primary Pattern Type">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        </button>
+                    </label>
                     <select id="pattern1Type">
                         <option value="waves">Sine Waves</option>
                         <option value="ripples">Ripples</option>
@@ -302,11 +330,25 @@
                             style="width: 100%; padding: 5px; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px;">
                     </div>
 
-                    <label>Speed</label>
+                    <label class="setting-label">
+                        Speed
+                        <button class="lock-btn" data-setting="pattern1Speed" title="Lock/Unlock Primary Pattern Speed">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        </button>
+                    </label>
                     <input type="range" id="pattern1Speed" min="0.001" max="0.05" value="0.01" step="0.001">
                     <div class="value-display" id="pattern1SpeedValue">0.01</div>
 
-                    <label>Scale</label>
+                    <label class="setting-label">
+                        Scale
+                        <button class="lock-btn" data-setting="pattern1Scale" title="Lock/Unlock Primary Pattern Scale">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lock-icon">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        </button>
+                    </label>
                     <input type="range" id="pattern1Scale" min="0.01" max="0.2" value="0.05" step="0.005">
                     <div class="value-display" id="pattern1ScaleValue">0.05</div>
                 </div>
