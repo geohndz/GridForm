@@ -127,7 +127,7 @@
         </div>
     </div>
     <div class="title">
-        <img src="assets/logo/GridForm.svg" alt="GridForm" width="357px" height="Auto">
+        <img id="gridform-logo" src="assets/logo/GridForm.svg" alt="GridForm" width="357px" height="Auto">
         <p class="version">[v1]</p>
     </div>
     <div id="resize-handle"></div>
@@ -163,6 +163,11 @@
                     <span class="dropdown-arrow">▶</span>
                 </div>
                 <div class="dropdown-content" id="colorsContent">
+                    <!-- Background Color -->
+                    <label>Background Color</label>
+                    <input type="color" id="backgroundColor" value="#000000"
+                        style="width: 100%; height: 30px; background: #111; border: 1px solid #333; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
+
                     <!-- Pattern Colors -->
                     <label>Primary Pattern Color</label>
                     <input type="color" id="pattern1Color" value="#ffffff"

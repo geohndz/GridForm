@@ -106,6 +106,9 @@ let settings = {
     
     // Color configuration
     colors: {
+        // Background color
+        backgroundColor: '#000000', // Background color for the canvas container
+        
         // Pattern colors
         pattern1Color: '#ffffff',  // Primary pattern color
         pattern2Color: '#00ff00',  // Secondary pattern color (only used when pattern2 is enabled)
@@ -166,6 +169,9 @@ function setup() {
     settings.pattern2.color = settings.colors.pattern2Color;
     settings.blendSettings.mode = settings.colors.blendMode;
     settings.blendSettings.amount = settings.colors.blendAmount;
+    
+    // Initialize background color and logo filter
+    updateBackgroundColor();
     
     // Apply palette colors if palette mode is enabled
     if (settings.colors.usePalette) {
@@ -338,8 +344,9 @@ function draw() {
     lastFrameTime = currentTime;
     frameCount++;
 
-    // Clear canvas with black background
-    background(0);
+    // Clear canvas with dynamic background color
+    const bgColor = color(settings.colors.backgroundColor);
+    background(bgColor);
     
     // Update animation time (adjusted by speed multiplier)
     time += 0.016 * speedMultiplier; // ~60fps with speed multiplier
@@ -1258,6 +1265,12 @@ function setupControls() {
         }
     });
 
+    // Background Color
+    safeAddEventListener('backgroundColor', 'input', (e) => {
+        settings.colors.backgroundColor = e.target.value;
+        updateBackgroundColor();
+    });
+
     // Color Animation
     safeAddEventListener('colorAnimationEnabled', 'change', (e) => {
         settings.colors.animationEnabled = e.target.checked;
@@ -1465,6 +1478,27 @@ function setupRandomizeButton() {
         const randomColor = vibrantColors[Math.floor(Math.random() * vibrantColors.length)];
         settings.colors.pattern1Color = randomColor;
         settings.pattern1.color = randomColor;
+        
+        // Randomize background color - full spectrum of colors
+        const backgroundColors = [
+            // Dark colors for good contrast
+            '#000000', '#111111', '#1a1a1a', '#2d2d2d', '#1f1f1f', '#0a0a0a', '#1e1e1e', '#2a2a2a', '#151515', '#0f0f0f',
+            // Vibrant colors
+            '#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
+            '#ff0080', '#00ff80', '#0080ff', '#8000ff', '#ff8000', '#ff6b35', '#f7931e', '#ffd23f', '#f4a261', '#e76f51',
+            '#006994', '#0099cc', '#00bfff', '#87ceeb', '#b0e0e6', '#228b22', '#32cd32', '#90ee90', '#98fb98', '#00ff7f',
+            '#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500',
+            // Pastel colors
+            '#ffb3ba', '#baffc9', '#bae1ff', '#ffb3f0', '#fff2ba', '#e6b3ff', '#b3ffd9', '#ffd9b3', '#b3d9ff', '#ffb3d9',
+            // Neutral colors
+            '#f5f5dc', '#d2b48c', '#deb887', '#f4a460', '#daa520', '#b8860b', '#cd853f', '#d2691e', '#8b4513', '#a0522d',
+            // Cool colors
+            '#4169e1', '#1e90ff', '#00bfff', '#87ceeb', '#4682b4', '#5f9ea0', '#20b2aa', '#48d1cc', '#40e0d0', '#7fffd4',
+            // Warm colors
+            '#ff6347', '#ff4500', '#ff8c00', '#ffa500', '#ffd700', '#ffff00', '#adff2f', '#7fff00', '#32cd32', '#00ff00'
+        ];
+        const randomBackgroundColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+        settings.colors.backgroundColor = randomBackgroundColor;
         
         // Randomize color animation (25% chance to enable)
         settings.colors.animationEnabled = Math.random() > 0.75;
@@ -2257,6 +2291,82 @@ function updatePalettePreview() {
     });
 }
 
+function updateBackgroundColor() {
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer) {
+        canvasContainer.style.backgroundColor = settings.colors.backgroundColor;
+    }
+    
+    // Update button group background color
+    updateButtonGroupBackground();
+    
+    // Update logo filter based on background color brightness
+    updateLogoFilter();
+    
+    // Force a redraw to update the canvas background
+    if (canvas) {
+        redraw();
+    }
+}
+
+function updateButtonGroupBackground() {
+    const buttonGroup = document.getElementById('button-group');
+    if (!buttonGroup) return;
+    
+    const backgroundColor = settings.colors.backgroundColor;
+    const brightness = getColorBrightness(backgroundColor);
+    
+    // Use solid grey colors instead of opacity
+    const buttonBgColor = '#0a0a0a';  // Solid very dark grey
+    const buttonBgHoverColor = '#1a1a1a';  // Slightly lighter grey for hover
+    
+    // Apply the background color to all buttons in the button group
+    const buttons = buttonGroup.querySelectorAll('button');
+    buttons.forEach(button => {
+        button.style.backgroundColor = buttonBgColor;
+        
+        // Update hover state
+        button.addEventListener('mouseenter', () => {
+            button.style.backgroundColor = buttonBgHoverColor;
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.backgroundColor = buttonBgColor;
+        });
+    });
+}
+
+function updateLogoFilter() {
+    const logo = document.getElementById('gridform-logo');
+    if (!logo) return;
+    
+    const backgroundColor = settings.colors.backgroundColor;
+    const brightness = getColorBrightness(backgroundColor);
+    
+    // If background is bright, make logo dark; if background is dark, make logo light
+    if (brightness > 0.5) {
+        // Bright background - use dark logo
+        logo.style.filter = 'brightness(0) saturate(100%)';
+    } else {
+        // Dark background - use light logo
+        logo.style.filter = 'brightness(0) saturate(100%) invert(1)';
+    }
+}
+
+function getColorBrightness(hexColor) {
+    // Convert hex to RGB
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calculate relative luminance (brightness)
+    // Using the formula: 0.299*R + 0.587*G + 0.114*B
+    const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    return brightness;
+}
+
 function updateColorsFromPalette() {
     if (!settings.colors.usePalette || !settings.colors.paletteColors.length) return;
     
@@ -2325,7 +2435,7 @@ function updateColorsFromAnimation() {
     
     switch (type) {
         case 'hue':
-            animatedColor = shiftHue(baseColor, settings.colors.animationTime * speed);
+            animatedColor = shiftHue(baseColor, settings.colors.animationTime * speed * 3); // Accelerated hue shift
             break;
         case 'saturation':
             animatedColor = shiftSaturation(baseColor, settings.colors.animationTime * speed);
@@ -2491,6 +2601,7 @@ function updateUIFromSettings() {
     }
     
     // Update Colors UI
+    document.getElementById('backgroundColor').value = settings.colors.backgroundColor;
     document.getElementById('colorAnimationEnabled').checked = settings.colors.animationEnabled;
     document.getElementById('colorAnimationType').value = settings.colors.animationType;
     document.getElementById('colorAnimationSpeed').value = settings.colors.animationSpeed;
@@ -2524,4 +2635,7 @@ function updateUIFromSettings() {
     
     // Update palette preview
     updatePalettePreview();
+    
+    // Update background color
+    updateBackgroundColor();
 }
