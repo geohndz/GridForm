@@ -75,6 +75,12 @@
     
     /* Lock button styles */
     --lock-icon-size: 14px;
+    
+    /* Settings spacing */
+    --setting-group-spacing: 24px;
+    --setting-item-spacing: 16px;
+    --setting-element-spacing: 8px;
+    --setting-label-spacing: 6px;
 }
 
 /* Dark theme variations (for future theming support) */
@@ -175,7 +181,7 @@ body {
 }
 
 .control-group {
-    margin-bottom: var(--spacing-2xl);
+    margin-bottom: var(--setting-group-spacing);
     padding-bottom: var(--spacing-xl);
     border-bottom: 1px solid var(--border-primary);
     margin-left: calc(-1 * var(--spacing-xl));
@@ -186,6 +192,7 @@ body {
 
 .control-group:last-child {
     border-bottom: none;
+    margin-bottom: 0;
 }
 
 .performance-info {
@@ -223,14 +230,14 @@ h3 {
 
 label {
     display: block;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--setting-label-spacing);
     font-size: var(--font-size-base);
     color: var(--text-secondary);
 }
 
 select, input[type="range"] {
     width: 100%;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--setting-element-spacing);
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     color: var(--text-primary);
@@ -283,13 +290,13 @@ input[type="range"]::-moz-range-track {
 /* Checkbox styling for better spacing */
 input[type="checkbox"] {
     margin-right: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0;
     transform: scale(1.2);
 }
 
 /* Labels with checkboxes need extra spacing */
 label:has(input[type="checkbox"]) {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--setting-item-spacing);
     display: flex;
     align-items: center;
     padding: var(--spacing-xs) 0;
@@ -297,11 +304,98 @@ label:has(input[type="checkbox"]) {
 
 /* Color input styling */
 input[type="color"] {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--setting-item-spacing);
     border-radius: var(--radius-md);
     cursor: pointer;
 }
 
+/* Toggle Switch Styles */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 100%;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--setting-item-spacing);
+    transition: all var(--transition-base);
+    cursor: pointer;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Ensure toggle switches match the width of other elements */
+.dropdown-content > .toggle-switch {
+    width: 100%;
+}
+
+.toggle-switch:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-secondary);
+}
+
+.toggle-switch.active {
+    background: var(--bg-tertiary);
+    border-color: var(--text-primary);
+}
+
+.toggle-switch.active:hover {
+    border-color: var(--text-secondary);
+}
+
+.toggle-switch-label {
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    font-weight: 500;
+    flex: 1;
+    text-align: left;
+}
+
+.toggle-switch-control {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--border-primary);
+    border-radius: 12px;
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+}
+
+.toggle-switch.active .toggle-switch-control {
+    background: var(--text-primary);
+}
+
+.toggle-switch-control::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-primary);
+    border-radius: 50%;
+    transition: all var(--transition-base);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-switch-control::after {
+    transform: translateX(20px);
+}
+
+.toggle-switch:active .toggle-switch-control::after {
+    width: 24px;
+}
+
+.toggle-switch.active:active .toggle-switch-control::after {
+    width: 24px;
+    transform: translateX(18px);
+}
+
+/* Legacy toggle button styles (keeping for backward compatibility) */
 .toggle-btn {
     width: 100%;
     padding: var(--spacing-md);
@@ -312,7 +406,7 @@ input[type="color"] {
     cursor: pointer;
     font-family: inherit;
     font-size: var(--font-size-base);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--setting-item-spacing);
     transition: background var(--transition-base);
 }
 
@@ -363,11 +457,53 @@ input[type="color"] {
     display: block;
 }
 
+/* Settings grouping and spacing */
+.dropdown-content > * {
+    margin-bottom: var(--setting-item-spacing);
+}
+
+.dropdown-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Group related settings together */
+.setting-group {
+    margin-bottom: var(--setting-group-spacing);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.setting-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Color settings specific spacing */
+#colorsContent .setting-group {
+    margin-bottom: var(--setting-group-spacing);
+}
+
+#colorsContent .setting-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Pattern settings specific spacing */
+#pattern1Content .setting-group,
+#pattern2Content .setting-group {
+    margin-bottom: var(--setting-group-spacing);
+}
+
+#pattern1Content .setting-group:last-child,
+#pattern2Content .setting-group:last-child {
+    margin-bottom: 0;
+}
+
 .value-display {
     font-size: var(--font-size-sm);
     color: var(--text-muted);
     text-align: right;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--setting-element-spacing);
 }
 
 .pattern-preview {
@@ -802,7 +938,7 @@ input[type="color"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--setting-label-spacing);
     font-weight: 500;
 }
 

@@ -1179,8 +1179,11 @@ function setupControls() {
     // Secondary Pattern
     document.getElementById('pattern2Toggle').addEventListener('click', (e) => {
         settings.pattern2.enabled = !settings.pattern2.enabled;
-        e.target.classList.toggle('active');
-        e.target.textContent = settings.pattern2.enabled ? 'Disable Secondary Pattern' : 'Enable Secondary Pattern';
+        e.currentTarget.classList.toggle('active');
+        
+        // Update the label text
+        const label = e.currentTarget.querySelector('.toggle-switch-label');
+        label.textContent = settings.pattern2.enabled ? 'Disable' : 'Enable';
 
         const pattern2Settings = document.getElementById('pattern2Settings');
         const pattern2ColorSection = document.getElementById('pattern2ColorSection');
@@ -1223,8 +1226,11 @@ function setupControls() {
     // Interactive Effects
     document.getElementById('interactiveToggle').addEventListener('click', (e) => {
         settings.interactive.enabled = !settings.interactive.enabled;
-        e.target.classList.toggle('active');
-        e.target.textContent = settings.interactive.enabled ? 'Disable Interactive Effects' : 'Enable Interactive Effects';
+        e.currentTarget.classList.toggle('active');
+        
+        // Update the label text
+        const label = e.currentTarget.querySelector('.toggle-switch-label');
+        label.textContent = settings.interactive.enabled ? 'Disable' : 'Enable';
 
         const interactiveSettings = document.getElementById('interactiveSettings');
         interactiveSettings.style.display = settings.interactive.enabled ? 'block' : 'none';
@@ -1571,9 +1577,15 @@ function setupRandomizeButton() {
         settings.pattern2.enabled = shouldEnableSecondary;
         
         if (shouldEnableSecondary) {
-            settings.pattern2.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
-            settings.pattern2.speed = Math.random() * 0.049 + 0.001;
-            settings.pattern2.scale = Math.random() * 0.19 + 0.01;
+            if (!settings.colors.locks.pattern2Type) {
+                settings.pattern2.type = patternTypes[Math.floor(Math.random() * patternTypes.length)];
+            }
+            if (!settings.colors.locks.pattern2Speed) {
+                settings.pattern2.speed = Math.random() * 0.049 + 0.001;
+            }
+            if (!settings.colors.locks.pattern2Scale) {
+                settings.pattern2.scale = Math.random() * 0.19 + 0.01;
+            }
             settings.pattern2.glow = Math.random() > 0.5;
             
             // Randomize noise variant if noise is selected
@@ -1592,9 +1604,11 @@ function setupRandomizeButton() {
                 '#228b22', '#32cd32', '#90ee90', '#98fb98', '#00ff7f', // forest
                 '#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500'  // fire
             ];
-            const randomColor2 = vibrantColors2[Math.floor(Math.random() * vibrantColors2.length)];
-            settings.colors.pattern2Color = randomColor2;
-            settings.pattern2.color = randomColor2;
+            if (!settings.colors.locks.pattern2Color) {
+                const randomColor2 = vibrantColors2[Math.floor(Math.random() * vibrantColors2.length)];
+                settings.colors.pattern2Color = randomColor2;
+                settings.pattern2.color = randomColor2;
+            }
             
             // Randomize blend settings
             settings.colors.blendAmount = Math.random() * 0.8 + 0.2; // 0.2 to 1.0
@@ -1609,7 +1623,7 @@ function setupRandomizeButton() {
             currentRamp2 = ASCII_RAMPS[selectedCharSet2];
             
             // Ensure secondary pattern has a good color if not using palette
-            if (!settings.colors.usePalette && (settings.colors.pattern2Color === '#ffffff' || settings.colors.pattern2Color === '#000000')) {
+            if (!settings.colors.usePalette && !settings.colors.locks.pattern2Color && (settings.colors.pattern2Color === '#ffffff' || settings.colors.pattern2Color === '#000000')) {
                 const fallbackColors2 = ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'];
                 const fallbackColor2 = fallbackColors2[Math.floor(Math.random() * fallbackColors2.length)];
                 settings.colors.pattern2Color = fallbackColor2;
@@ -2729,7 +2743,7 @@ function updateUIFromSettings() {
 
     if (settings.pattern2.enabled) {
         pattern2Toggle.classList.add('active');
-        pattern2Toggle.textContent = 'Disable Secondary Pattern';
+        pattern2Toggle.querySelector('.toggle-switch-label').textContent = 'Disable';
         pattern2Settings.style.display = 'block';
 
         document.getElementById('pattern2Type').value = settings.pattern2.type;
@@ -2756,8 +2770,29 @@ function updateUIFromSettings() {
     } else {
         // Properly disable secondary pattern UI
         pattern2Toggle.classList.remove('active');
-        pattern2Toggle.textContent = 'Enable Secondary Pattern';
+        pattern2Toggle.querySelector('.toggle-switch-label').textContent = 'Enable';
         pattern2Settings.style.display = 'none';
+    }
+    
+    // Update interactive effects UI
+    const interactiveToggle = document.getElementById('interactiveToggle');
+    const interactiveSettings = document.getElementById('interactiveSettings');
+    
+    if (settings.interactive.enabled) {
+        interactiveToggle.classList.add('active');
+        interactiveToggle.querySelector('.toggle-switch-label').textContent = 'Disable';
+        interactiveSettings.style.display = 'block';
+        
+        document.getElementById('interactiveType').value = settings.interactive.type;
+        document.getElementById('interactiveStrength').value = settings.interactive.strength;
+        document.getElementById('interactiveStrengthValue').textContent = settings.interactive.strength.toFixed(1);
+        document.getElementById('interactiveRadius').value = settings.interactive.radius;
+        document.getElementById('interactiveRadiusValue').textContent = settings.interactive.radius.toFixed(2);
+        document.getElementById('interactiveClick').checked = settings.interactive.clickEnabled;
+    } else {
+        interactiveToggle.classList.remove('active');
+        interactiveToggle.querySelector('.toggle-switch-label').textContent = 'Enable';
+        interactiveSettings.style.display = 'none';
     }
     
     // Update Colors UI
