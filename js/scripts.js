@@ -1485,6 +1485,98 @@ function setupControls() {
 
 
 
+    // Theme Management
+    let currentTheme = localStorage.getItem('theme') || 'auto';
+    
+    // Initialize theme based on user preference or system preference
+    function initializeTheme() {
+        if (currentTheme === 'auto') {
+            // Check system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            updateThemeUI(prefersDark ? 'dark' : 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            updateThemeUI(currentTheme);
+        }
+        updateLogo();
+    }
+    
+    // Update theme UI elements
+    function updateThemeUI(theme) {
+        const themeIcon = document.getElementById('theme-icon');
+        const themeLabel = document.querySelector('.theme-label');
+        
+        if (theme === 'light') {
+            // Show moon icon (indicating dark mode is available)
+            if (themeIcon) {
+                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />`;
+            }
+            if (themeLabel) {
+                themeLabel.textContent = 'Light Mode';
+            }
+        } else {
+            // Show sun icon (indicating light mode is available)
+            if (themeIcon) {
+                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />`;
+            }
+            if (themeLabel) {
+                themeLabel.textContent = 'Dark Mode';
+            }
+        }
+    }
+    
+    // Update logo based on theme
+    function updateLogo() {
+        const logo = document.getElementById('gridform-logo');
+        const theme = document.documentElement.getAttribute('data-theme') || 
+                     (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        
+        if (theme === 'light') {
+            logo.src = 'assets/logo/GridForm.svg';
+            // Apply filter to make logo black in light mode
+            logo.style.filter = 'brightness(0) saturate(100%)';
+        } else {
+            logo.src = 'assets/logo/GridForm.svg';
+            logo.style.filter = 'none';
+        }
+    }
+    
+    // Toggle theme
+    function toggleTheme() {
+        const currentDataTheme = document.documentElement.getAttribute('data-theme');
+        let newTheme;
+        
+        if (currentDataTheme === 'light') {
+            newTheme = 'dark';
+        } else if (currentDataTheme === 'dark') {
+            newTheme = 'light';
+        } else {
+            // If no data-theme is set, check system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            newTheme = prefersDark ? 'light' : 'dark';
+        }
+        
+        currentTheme = newTheme;
+        document.documentElement.setAttribute('data-theme', newTheme);
+        updateThemeUI(newTheme);
+        updateLogo();
+        localStorage.setItem('theme', newTheme);
+    }
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (currentTheme === 'auto') {
+            const newTheme = e.matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            updateThemeUI(newTheme);
+            updateLogo();
+        }
+    });
+    
+    // Initialize theme on page load
+    initializeTheme();
+    
     // Settings Modal Functionality
     const settingsBtn = document.getElementById('settings-btn');
     const settingsModal = document.getElementById('settings-modal');
@@ -1513,6 +1605,12 @@ function setupControls() {
                 settingsModal.classList.remove('show');
             }
         });
+    }
+    
+    // Theme toggle button
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
     }
 
     // Handle modal form changes
@@ -1570,6 +1668,12 @@ function setupControls() {
         }
         if (modalMemoryManagement) {
             modalMemoryManagement.value = 'balanced'; // Default value
+        }
+        
+        // Sync theme state
+        const currentDataTheme = document.documentElement.getAttribute('data-theme');
+        if (currentDataTheme) {
+            updateThemeUI(currentDataTheme);
         }
     }
 }
