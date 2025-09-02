@@ -316,7 +316,29 @@ body {
 }
 
 .controls-content {
-    padding: var(--spacing-xl);
+    padding: 0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
+}
+
+/* Make the Load Pattern group sticky at the top of the sidebar */
+#load-pattern-group {
+    position: sticky;
+    top: 0;
+    z-index: calc(var(--z-controls) + 1);
+    background: var(--bg-primary);
+    margin-top: 0;
+    padding-top: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+#load-pattern-group::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 14px;
+    background: linear-gradient(to bottom, var(--bg-primary) 0%, var(--bg-primary) 60%, transparent 100%);
+    pointer-events: none;
 }
 
 .control-group {
