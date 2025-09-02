@@ -202,6 +202,9 @@ function setup() {
     // Position the floating button group
     updateButtonGroupPosition();
     updateSidebarTogglePosition();
+    
+    // Ensure canvas size is correct after all UI elements are positioned
+    setTimeout(() => updateCanvasSize(), 100);
 
     // Handle tab visibility changes (pause animation when tab is hidden)
     document.addEventListener('visibilitychange', () => {
@@ -217,29 +220,55 @@ function setup() {
             }
         }
     });
+    
+    // Handle orientation changes on mobile devices
+    window.addEventListener('orientationchange', () => {
+        // Wait for orientation change to complete, then update canvas size
+        setTimeout(() => {
+            updateCanvasSize();
+        }, 500);
+    });
+    
+    // Handle window focus events (useful for mobile browsers)
+    window.addEventListener('focus', () => {
+        // Small delay to ensure window dimensions are stable
+        setTimeout(() => {
+            updateCanvasSize();
+        }, 100);
+    });
 }
 
 /**
  * Calculates and updates canvas size to fit the current grid configuration
  * Ensures the canvas is large enough to display all characters while staying within bounds
+ * Now dynamically scales to 80% of available viewport/container width and allows taller canvas
  */
 function updateCanvasSize() {
+    // Get the canvas container dimensions
+    const canvasContainer = document.getElementById('canvas-container');
+    const containerWidth = canvasContainer.offsetWidth;
+    const containerHeight = canvasContainer.offsetHeight;
+    
     // Calculate required canvas size based on grid and character size
     let requiredWidth = gridCols * baseCharWidth * (settings.charSize / 12) * settings.charSpacing;
     let requiredHeight = gridRows * baseCharHeight * (settings.charSize / 12) * settings.charSpacing;
 
-    // Constrain to maximum dimensions to prevent oversized canvas
-    let maxWidth = 800;
-    let maxHeight = 500;
+    // Scale to 80% of available container width
+    let targetWidth = containerWidth * 0.8;
+    let targetHeight = containerHeight * 0.8;
 
-    // Calculate scale factor if needed (don't scale up, only down)
-    let scaleX = maxWidth / requiredWidth;
-    let scaleY = maxHeight / requiredHeight;
-    let scale = Math.min(scaleX, scaleY, 1.0);
+    // Calculate scale factors to fit within target dimensions
+    let scaleX = targetWidth / requiredWidth;
+    let scaleY = targetHeight / requiredHeight;
+    let scale = Math.min(scaleX, scaleY, 1.0); // Don't scale up beyond 100%
 
-    // Calculate final canvas dimensions (constrained to maximum)
-    let finalWidth = Math.min(requiredWidth, maxWidth);
-    let finalHeight = Math.min(requiredHeight, maxHeight);
+    // Calculate final canvas dimensions
+    let finalWidth = Math.floor(requiredWidth * scale);
+    let finalHeight = Math.floor(requiredHeight * scale);
+
+    // Ensure minimum dimensions for usability
+    finalWidth = Math.max(finalWidth, 400);
+    finalHeight = Math.max(finalHeight, 300);
 
     // Only resize if dimensions changed significantly (prevents unnecessary resizing)
     if (Math.abs(width - finalWidth) > 5 || Math.abs(height - finalHeight) > 5) {
@@ -314,6 +343,9 @@ function setupResizeHandling() {
         if (!controlsPanel.classList.contains('sidebar-hidden')) {
             sidebarToggle.style.right = (clampedWidth + 20) + 'px';
         }
+        
+        // Update canvas size to fit new available space
+        updateCanvasSize();
 
         e.preventDefault();
     });
@@ -363,6 +395,12 @@ function setupResizeHandling() {
             const currentWidth = controlsPanel.offsetWidth;
             document.documentElement.style.setProperty('--current-sidebar-width', currentWidth + 'px');
         }
+        
+        // Debounced canvas size update to prevent excessive resizing during window resize
+        clearTimeout(window.resizeTimeout);
+        window.resizeTimeout = setTimeout(() => {
+            updateCanvasSize();
+        }, 250);
     });
 }
 
@@ -416,6 +454,9 @@ function setupSidebarToggle() {
         updateButtonGroupPosition();
         updateHandlePosition();
         updateSidebarTogglePosition();
+        
+        // Update canvas size to fit new available space
+        setTimeout(() => updateCanvasSize(), 100);
     });
 }
 

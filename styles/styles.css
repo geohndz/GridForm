@@ -52,7 +52,7 @@
     --spacing-xl: 20px;
     --spacing-2xl: 25px;
     --spacing-3xl: 30px;
-    --spacing-4xl: 43px;
+    --spacing-4xl: 15px;
     
     /* Border Radius */
     --radius-sm: 3px;
@@ -96,6 +96,10 @@
     
     /* Dynamic sidebar width for JavaScript updates */
     --current-sidebar-width: 320px;
+    
+    /* Canvas sizing variables */
+    --canvas-min-height: 600px;
+    --canvas-max-height: 80vh;
 }
 
 /* Light theme variations */
@@ -168,6 +172,9 @@ body {
     width: calc(100vw - 320px);
     height: 100vh;
     transition: width var(--transition-slow);
+    min-height: var(--canvas-min-height);
+    max-height: var(--canvas-max-height);
+    flex-direction: column; /* Stack elements vertically if needed */
 }
 
 /* Sidebar Toggle Button */
@@ -224,7 +231,23 @@ body {
 #canvas-container.sidebar-hidden {
     width: 100vw !important;
     max-width: 100vw !important;
+    min-width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
 }
+
+/* Canvas scaling when sidebar is resized */
+#canvas-container.resizing canvas {
+    transition: transform var(--transition-fast);
+}
+
+/* Canvas scaling when sidebar is hidden */
+#canvas-container.sidebar-hidden canvas {
+    transform: scale(1.05);
+    transform-origin: center center;
+}
+
+
 
 /* Sidebar toggle button when sidebar is hidden */
 .sidebar-toggle-btn.sidebar-hidden {
@@ -1183,12 +1206,162 @@ input[type="color"] {
         width: 18px;
         height: 18px;
     }
+    
+    /* Ensure canvas container has adequate height on mobile */
+    #canvas-container {
+        min-height: 400px;
+    }
+}
+
+/* Responsive adjustments for larger screens */
+@media (min-width: 1200px) {
+    #canvas-container {
+        min-height: 700px;
+        max-height: 85vh;
+    }
+}
+
+/* Tablet landscape optimization */
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+    #canvas-container {
+        min-height: 600px;
+        max-height: 80vh;
+    }
+}
+
+/* Responsive adjustments for very large screens */
+@media (min-width: 1600px) {
+    #canvas-container {
+        min-height: 800px;
+        max-height: 90vh;
+    }
+}
+
+/* High DPI display optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    canvas {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Canvas responsive behavior */
+canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: all var(--transition-base);
+    display: block; /* Ensure proper block display */
+    margin: auto; /* Center the canvas */
+    box-sizing: border-box; /* Include padding and border in sizing */
+    will-change: transform; /* Optimize for transform changes */
+}
+
+/* Canvas wrapper for better responsive behavior */
+.canvas-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Canvas container responsive behavior */
+#canvas-container {
+    transition: width var(--transition-slow), height var(--transition-slow);
+}
+
+/* Canvas responsive scaling */
+#canvas-container canvas {
+    transition: transform var(--transition-base), width var(--transition-base), height var(--transition-base);
+}
+
+/* Canvas container height adjustments */
+#canvas-container.sidebar-hidden {
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+}
+
+/* Canvas scaling when sidebar is toggled */
+#canvas-container.sidebar-hidden canvas {
+    transform: scale(1.05);
+    transform-origin: center center;
+}
+
+/* Canvas scaling when sidebar is visible */
+#canvas-container:not(.sidebar-hidden) canvas {
+    transform: scale(1.0);
+    transform-origin: center center;
+}
+
+/* Ensure canvas scales properly on different devices */
+@media (max-width: 480px) {
+    canvas {
+        transform: scale(0.9);
+        transform-origin: center center;
+    }
+    
+    #canvas-container {
+        min-height: 400px;
+        max-height: 70vh;
+    }
+}
+
+@media (max-width: 320px) {
+    canvas {
+        transform: scale(0.8);
+        transform-origin: center center;
+    }
+    
+    #canvas-container {
+        min-height: 350px;
+        max-height: 65vh;
+    }
+}
+
+/* Smooth scaling for medium screens */
+@media (min-width: 481px) and (max-width: 768px) {
+    canvas {
+        transform: scale(0.95);
+        transform-origin: center center;
+    }
+    
+    #canvas-container {
+        min-height: 500px;
+        max-height: 75vh;
+    }
+}
+
+/* Large screen optimization */
+@media (min-width: 1920px) {
+    canvas {
+        transform: scale(1.1);
+        transform-origin: center center;
+    }
+}
+
+/* Ultra-wide screen optimization */
+@media (min-width: 2560px) {
+    canvas {
+        transform: scale(1.2);
+        transform-origin: center center;
+    }
+    
+    #canvas-container {
+        min-height: 900px;
+        max-height: 95vh;
+    }
 }
 
 /* Canvas container adjustments for top bar */
 #canvas-container {
     margin-top: 60px;
     height: calc(100vh - 60px);
+    min-height: calc(100vh - 60px); /* Ensure it takes full available height */
+    max-height: calc(100vh - 60px); /* Prevent overflow */
+    position: relative; /* Ensure proper positioning context */
 }
 
 /* Sidebar toggle button position and styling */
