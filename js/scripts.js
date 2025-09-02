@@ -63,7 +63,7 @@ const PATTERN_TYPES = ['waves', 'ripples', 'noise', 'spiral', 'checkerboard', 's
 // Main application settings object - contains all user-configurable parameters
 let settings = {
     // Display settings
-    gridCols: 80,        // Number of columns in the ASCII grid
+    gridCols: 140,       // Number of columns in the ASCII grid
     gridRows: 50,        // Number of rows in the ASCII grid
     charSize: 12,        // Font size for ASCII characters
     charSpacing: 1.0,    // Spacing multiplier between characters
@@ -181,6 +181,7 @@ function setup() {
     setupIndividualLockButtons(); // Individual lock buttons
     setupDownloadButton();     // Export/download functionality
     setupResizeHandling();     // Controls panel resize functionality
+    setupSidebarToggle();      // Sidebar hide/show functionality
     setupTooltips();           // Button tooltips
     
     // Initialize color settings
@@ -190,7 +191,7 @@ function setup() {
     settings.blendSettings.mode = settings.colors.blendMode;
     settings.blendSettings.amount = settings.colors.blendAmount;
     
-    // Initialize background color and logo filter
+    // Initialize background color
     updateBackgroundColor();
     
     // Apply palette colors if palette mode is enabled
@@ -200,6 +201,7 @@ function setup() {
     
     // Position the floating button group
     updateButtonGroupPosition();
+    updateSidebarTogglePosition();
 
     // Handle tab visibility changes (pause animation when tab is hidden)
     document.addEventListener('visibilitychange', () => {
@@ -252,14 +254,23 @@ function updateCanvasSize() {
 function setupResizeHandling() {
     const resizeHandle = document.getElementById('resize-handle');
     const controlsPanel = document.getElementById('controls');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
 
     // Helper function to update the resize handle position
     function updateHandlePosition() {
-        const controlsWidth = controlsPanel.offsetWidth;
-        resizeHandle.style.right = (controlsWidth - 4.5) + 'px'; // Center on the 1px border
+        if (controlsPanel.classList.contains('sidebar-hidden')) {
+            resizeHandle.style.right = '-4.5px'; // Hide resize handle when sidebar is hidden
+        } else {
+            const controlsWidth = controlsPanel.offsetWidth;
+            resizeHandle.style.right = (controlsWidth - 4.5) + 'px'; // Center on the 1px border
+        }
     }
 
     updateHandlePosition();
+    
+    // Set initial CSS custom property
+    const initialWidth = controlsPanel.offsetWidth;
+    document.documentElement.style.setProperty('--current-sidebar-width', initialWidth + 'px');
 
     // Start resize operation on mouse down
     resizeHandle.addEventListener('mousedown', (e) => {
@@ -288,11 +299,21 @@ function setupResizeHandling() {
         const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
         controlsPanel.style.width = clampedWidth + 'px';
 
+        // Update CSS custom property for dynamic width calculations
+        document.documentElement.style.setProperty('--current-sidebar-width', clampedWidth + 'px');
+
         // Update handle position to stay aligned
         resizeHandle.style.right = (clampedWidth - 4.5) + 'px';
 
         // Update button group position to stay centered in the canvas area
         updateButtonGroupPosition();
+        // Update sidebar toggle button position in real-time during drag
+        updateSidebarTogglePositionWithWidth(clampedWidth);
+        
+        // Force immediate toggle button positioning during resize (no CSS variable delay)
+        if (!controlsPanel.classList.contains('sidebar-hidden')) {
+            sidebarToggle.style.right = (clampedWidth + 20) + 'px';
+        }
 
         e.preventDefault();
     });
@@ -310,6 +331,11 @@ function setupResizeHandling() {
             
             // Reset border color when resizing ends
             controlsPanel.style.borderLeftColor = '#333';
+            
+            // Clean up inline styles and let CSS take over
+            if (!controlsPanel.classList.contains('sidebar-hidden')) {
+                sidebarToggle.style.removeProperty('right');
+            }
         }
     });
 
@@ -330,7 +356,106 @@ function setupResizeHandling() {
     window.addEventListener('resize', () => {
         updateHandlePosition();
         updateButtonGroupPosition();
+        updateSidebarTogglePosition();
+        
+        // Update CSS custom property with current width
+        if (!controlsPanel.classList.contains('sidebar-hidden')) {
+            const currentWidth = controlsPanel.offsetWidth;
+            document.documentElement.style.setProperty('--current-sidebar-width', currentWidth + 'px');
+        }
     });
+}
+
+/**
+ * Sets up the sidebar toggle functionality
+ * Allows users to hide/show the controls panel
+ */
+function setupSidebarToggle() {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const controlsPanel = document.getElementById('controls');
+    const resizeHandle = document.getElementById('resize-handle');
+    const canvasContainer = document.getElementById('canvas-container');
+    
+    // Check if sidebar was previously hidden
+    const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+    if (sidebarHidden) {
+        controlsPanel.classList.add('sidebar-hidden');
+        resizeHandle.classList.add('sidebar-hidden');
+        sidebarToggle.classList.add('sidebar-hidden');
+        canvasContainer.classList.add('sidebar-hidden');
+        // Update positions after restoring state
+        setTimeout(() => {
+            updateButtonGroupPosition();
+            updateHandlePosition();
+            updateSidebarTogglePosition();
+        }, 100);
+    }
+
+    sidebarToggle.addEventListener('click', () => {
+        const isHidden = controlsPanel.classList.contains('sidebar-hidden');
+        
+        if (isHidden) {
+            // Show sidebar
+            controlsPanel.classList.remove('sidebar-hidden');
+            resizeHandle.classList.remove('sidebar-hidden');
+            sidebarToggle.classList.remove('sidebar-hidden');
+            canvasContainer.classList.remove('sidebar-hidden');
+            localStorage.setItem('sidebarHidden', 'false');
+            console.log('Sidebar shown, canvas container classes:', canvasContainer.classList.toString());
+        } else {
+            // Hide sidebar
+            controlsPanel.classList.add('sidebar-hidden');
+            resizeHandle.classList.add('sidebar-hidden');
+            sidebarToggle.classList.add('sidebar-hidden');
+            canvasContainer.classList.add('sidebar-hidden');
+            localStorage.setItem('sidebarHidden', 'true');
+            console.log('Sidebar hidden, canvas container classes:', canvasContainer.classList.toString());
+        }
+        
+        // Update button group position and resize handle position when sidebar state changes
+        updateButtonGroupPosition();
+        updateHandlePosition();
+        updateSidebarTogglePosition();
+    });
+}
+
+/**
+ * Updates the position of the sidebar toggle button
+ * Called when the sidebar state changes
+ */
+function updateSidebarTogglePosition() {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const controlsPanel = document.getElementById('controls');
+    
+    if (controlsPanel.classList.contains('sidebar-hidden')) {
+        // When sidebar is hidden, CSS class handles positioning
+        // Update CSS custom property to 0 when hidden
+        document.documentElement.style.setProperty('--current-sidebar-width', '0px');
+    } else {
+        // When sidebar is visible, CSS handles positioning via --current-sidebar-width
+        const controlsWidth = controlsPanel.offsetWidth;
+        // Update CSS custom property with current width
+        document.documentElement.style.setProperty('--current-sidebar-width', controlsWidth + 'px');
+    }
+}
+
+/**
+ * Updates the position of the sidebar toggle button with a specific width
+ * More efficient for drag operations
+ */
+function updateSidebarTogglePositionWithWidth(width) {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const controlsPanel = document.getElementById('controls');
+    
+    if (controlsPanel.classList.contains('sidebar-hidden')) {
+        // When sidebar is hidden, CSS class handles positioning
+        // Update CSS custom property to 0 when hidden
+        document.documentElement.style.setProperty('--current-sidebar-width', '0px');
+    } else {
+        // When sidebar is visible, CSS handles positioning via --current-sidebar-width
+        // Update CSS custom property with current width
+        document.documentElement.style.setProperty('--current-sidebar-width', width + 'px');
+    }
 }
 
 /**
@@ -340,7 +465,7 @@ function setupResizeHandling() {
 function updateButtonGroupPosition() {
     const buttonGroup = document.getElementById('button-group');
     const controlsPanel = document.getElementById('controls');
-    const controlsWidth = controlsPanel.offsetWidth;
+    const controlsWidth = controlsPanel.classList.contains('sidebar-hidden') ? 0 : controlsPanel.offsetWidth;
     const canvasAreaWidth = window.innerWidth - controlsWidth;
     
     // Calculate the center of the canvas area (left side of the viewport)
@@ -1391,6 +1516,102 @@ function setupControls() {
         }
         console.log(`Glow quality changed to: ${quality}`);
     });
+
+    // Settings Modal Functionality
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsClose = document.getElementById('settings-close');
+
+    // Open settings modal
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('show');
+            // Sync modal values with current settings
+            syncModalValues();
+        });
+    }
+
+    // Close settings modal
+    if (settingsClose) {
+        settingsClose.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+        });
+    }
+
+    // Close modal when clicking outside
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('show');
+            }
+        });
+    }
+
+    // Handle modal form changes
+    const modalTargetFps = document.getElementById('modal-target-fps');
+    const modalGlowQuality = document.getElementById('modal-glow-quality');
+    const modalAnimationSmoothing = document.getElementById('modal-animation-smoothing');
+    const modalMemoryManagement = document.getElementById('modal-memory-management');
+
+    if (modalTargetFps) {
+        modalTargetFps.addEventListener('change', (e) => {
+            const fps = parseInt(e.target.value);
+            targetFPS = fps;
+            frameInterval = 1000 / fps;
+            // Update the main performance settings dropdown
+            const mainFpsSelect = document.getElementById('targetFpsSelect');
+            if (mainFpsSelect) {
+                mainFpsSelect.value = fps;
+            }
+            console.log(`Target FPS changed to: ${fps}`);
+        });
+    }
+
+    if (modalGlowQuality) {
+        modalGlowQuality.addEventListener('change', (e) => {
+            const quality = e.target.value;
+            // Update the main glow quality dropdown
+            const mainGlowSelect = document.getElementById('glowQualitySelect');
+            if (mainGlowSelect) {
+                mainGlowSelect.value = quality;
+            }
+            // Apply the same logic as the main dropdown
+            switch (quality) {
+                case 'low':
+                    settings.pattern1.glow = false;
+                    settings.pattern2.glow = false;
+                    document.getElementById('pattern1Glow').checked = false;
+                    document.getElementById('pattern2Glow').checked = false;
+                    break;
+                case 'medium':
+                    // Keep current glow settings
+                    break;
+                case 'high':
+                    settings.pattern1.glow = true;
+                    settings.pattern2.glow = true;
+                    document.getElementById('pattern1Glow').checked = true;
+                    document.getElementById('pattern2Glow').checked = true;
+                    break;
+            }
+            console.log(`Glow quality changed to: ${quality}`);
+        });
+    }
+
+    // Helper function to sync modal values with current settings
+    function syncModalValues() {
+        if (modalTargetFps) {
+            modalTargetFps.value = targetFPS;
+        }
+        if (modalGlowQuality) {
+            modalGlowQuality.value = document.getElementById('glowQualitySelect')?.value || 'medium';
+        }
+        if (modalAnimationSmoothing) {
+            modalAnimationSmoothing.value = 'medium'; // Default value
+        }
+        if (modalMemoryManagement) {
+            modalMemoryManagement.value = 'balanced'; // Default value
+        }
+    }
 }
 
 function setupDropdowns() {
@@ -2474,9 +2695,6 @@ function updateBackgroundColor() {
     // Update button group background color
     updateButtonGroupBackground();
     
-    // Update logo filter based on background color brightness
-    updateLogoFilter();
-    
     // Force a redraw to update the canvas background
     if (canvas) {
         redraw();
@@ -2486,9 +2704,6 @@ function updateBackgroundColor() {
 function updateButtonGroupBackground() {
     const buttonGroup = document.getElementById('button-group');
     if (!buttonGroup) return;
-    
-    const backgroundColor = settings.colors.backgroundColor;
-    const brightness = getColorBrightness(backgroundColor);
     
     // Use solid grey colors instead of opacity
     const buttonBgColor = '#0a0a0a';  // Solid very dark grey
@@ -2510,36 +2725,7 @@ function updateButtonGroupBackground() {
     });
 }
 
-function updateLogoFilter() {
-    const logo = document.getElementById('gridform-logo');
-    if (!logo) return;
-    
-    const backgroundColor = settings.colors.backgroundColor;
-    const brightness = getColorBrightness(backgroundColor);
-    
-    // If background is bright, make logo dark; if background is dark, make logo light
-    if (brightness > 0.5) {
-        // Bright background - use dark logo
-        logo.style.filter = 'brightness(0) saturate(100%)';
-    } else {
-        // Dark background - use light logo
-        logo.style.filter = 'brightness(0) saturate(100%) invert(1)';
-    }
-}
 
-function getColorBrightness(hexColor) {
-    // Convert hex to RGB
-    const hex = hexColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    // Calculate relative luminance (brightness)
-    // Using the formula: 0.299*R + 0.587*G + 0.114*B
-    const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
-    return brightness;
-}
 
 function updateColorsFromPalette() {
     if (!settings.colors.usePalette || !settings.colors.paletteColors.length) return;

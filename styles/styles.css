@@ -72,6 +72,7 @@
     --z-tooltip: 2000;
     --z-toast: 9999;
     --z-overlay: 10000;
+    --z-sidebar-toggle: 1500;
     
     /* Lock button styles */
     --lock-icon-size: 14px;
@@ -81,6 +82,9 @@
     --setting-item-spacing: 16px;
     --setting-element-spacing: 8px;
     --setting-label-spacing: 6px;
+    
+    /* Dynamic sidebar width for JavaScript updates */
+    --current-sidebar-width: 320px;
 }
 
 /* Dark theme variations (for future theming support) */
@@ -104,13 +108,11 @@ body {
     padding: 0;
     background: var(--bg-primary);
     color: var(--text-primary);
-    display: flex;
     height: 100vh;
     overflow: hidden;
 }
 
 #canvas-container {
-    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -118,6 +120,70 @@ body {
     overflow: hidden;
     cursor: crosshair;
     position: relative;
+    width: calc(100vw - 320px);
+    height: 100vh;
+    transition: width var(--transition-slow);
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+    position: fixed;
+    right: calc(var(--current-sidebar-width) + 20px);
+    top: 20px;
+    width: var(--button-size);
+    height: var(--button-size);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    z-index: var(--z-sidebar-toggle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+
+
+.sidebar-toggle-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-primary);
+}
+
+.sidebar-toggle-btn svg {
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    stroke: var(--border-primary);
+    transition: stroke var(--transition-base), transform var(--transition-base);
+}
+
+.sidebar-toggle-btn:hover svg {
+    stroke: var(--text-primary);
+}
+
+.sidebar-toggle-btn.sidebar-hidden svg {
+    transform: rotate(180deg);
+}
+
+/* Sidebar hidden state */
+#controls.sidebar-hidden {
+    transform: translateX(100%);
+}
+
+#resize-handle.sidebar-hidden {
+    right: -4.5px !important;
+    transform: translateY(-50%) !important;
+}
+
+/* Canvas container when sidebar is hidden */
+#canvas-container.sidebar-hidden {
+    width: 100vw !important;
+    max-width: 100vw !important;
+}
+
+/* Sidebar toggle button when sidebar is hidden */
+.sidebar-toggle-btn.sidebar-hidden {
+    right: 20px !important;
 }
 
 #controls {
@@ -131,8 +197,10 @@ body {
     overflow-x: hidden;
     padding: 0;
     font-family: var(--font-family-primary);
-    position: relative;
-    transition: border-left-color var(--transition-base);
+    position: fixed;
+    right: 0;
+    top: 0;
+    transition: border-left-color var(--transition-base), transform var(--transition-slow);
 }
 
 #controls.resizing {
@@ -141,7 +209,7 @@ body {
 
 #resize-handle {
     position: fixed;
-    right: calc(var(--controls-width) - var(--resize-handle-width) / 2);
+    right: calc(var(--current-sidebar-width) - var(--resize-handle-width) / 2);
     top: 50%;
     transform: translateY(-50%);
     width: var(--resize-handle-width);
@@ -152,6 +220,7 @@ body {
     z-index: var(--z-controls);
     border-radius: var(--radius-sm);
     pointer-events: auto;
+    transition: transform var(--transition-slow);
 }
 
 #resize-handle:hover, #resize-handle.dragging {
@@ -541,6 +610,7 @@ input[type="color"] {
     display: flex;
     gap: var(--spacing-md);
     z-index: var(--z-base);
+    transition: left var(--transition-slow);
 }
 
 #play-pause-btn, #randomize-btn {
@@ -974,4 +1044,160 @@ input[type="color"] {
     height: var(--lock-icon-size);
     stroke: currentColor;
     transition: all var(--transition-base);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    #top-bar {
+        padding: 0 var(--spacing-lg);
+    }
+    
+    .top-bar-left #gridform-logo {
+        height: 28px;
+    }
+    
+    .top-bar-left .version {
+        font-size: var(--font-size-xs);
+    }
+    
+    .settings-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .settings-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* Settings Modal */
+.settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-overlay);
+    z-index: var(--z-overlay);
+    backdrop-filter: blur(5px);
+}
+
+.settings-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-modal-content {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.settings-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.settings-modal-header h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.settings-close-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-base);
+    padding: 0;
+}
+
+.settings-close-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-primary);
+}
+
+.settings-close-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--text-secondary);
+    transition: stroke var(--transition-base);
+}
+
+.settings-close-btn:hover svg {
+    stroke: var(--text-primary);
+}
+
+.settings-modal-body {
+    padding: var(--spacing-xl);
+}
+
+.settings-modal-body .setting-group {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-xl);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.settings-modal-body .setting-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.settings-modal-body label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.settings-modal-body select {
+    width: 100%;
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-sm);
+    transition: border-color var(--transition-base);
+}
+
+.settings-modal-body select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+.settings-modal-body select:hover {
+    border-color: var(--border-secondary);
 }
