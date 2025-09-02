@@ -1241,6 +1241,7 @@ input[type="color"] {
     display: flex;
     align-items: baseline;
     gap: var(--spacing-md);
+    position: relative;
 }
 
 .top-bar-left #gridform-logo {
@@ -1255,6 +1256,12 @@ input[type="color"] {
     font-weight: 500;
     vertical-align: baseline;
     line-height: 1;
+    cursor: pointer;
+}
+
+/* Use shared .tooltip styling; custom placement below version */
+#version-tooltip {
+    position: fixed;
 }
 
 .top-bar-center {

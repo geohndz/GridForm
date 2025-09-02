@@ -3770,11 +3770,84 @@ document.addEventListener('DOMContentLoaded', function() {
     function hideWhatsNew() {
         if (!modal) return;
         modal.classList.remove('show');
+        // Show ephemeral tooltip from the version label using shared tooltip behavior
+        const versionEl = document.getElementById('version-label');
+        const tooltip = document.getElementById('version-tooltip');
+        if (versionEl && tooltip) {
+            // Position tooltip below the version label (similar to other tooltips positioning)
+            const rect = versionEl.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            const top = rect.bottom + 10; // below element
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+
+            tooltip.classList.add('show');
+            tooltip.setAttribute('aria-hidden', 'false');
+
+            // Auto-hide after 3 seconds
+            window.setTimeout(() => {
+                tooltip.classList.remove('show');
+                tooltip.setAttribute('aria-hidden', 'true');
+            }, 3000);
+        }
     }
 
     if (modal) {
-        // Always open on load (no persistence)
-        window.requestAnimationFrame(() => showWhatsNew());
+        // Determine current version label text (e.g., "[v2]")
+        const versionEl = document.getElementById('version-label');
+        const versionText = (versionEl && versionEl.textContent) ? versionEl.textContent.trim() : '[v]';
+        const storageKey = `whatsnew_shown_${versionText}`;
+
+        // Show only once per version
+        try {
+            const hasShown = window.localStorage.getItem(storageKey) === '1';
+            if (!hasShown) {
+                window.requestAnimationFrame(() => {
+                    showWhatsNew();
+                    // Mark as shown after opening
+                    window.localStorage.setItem(storageKey, '1');
+                });
+            }
+        } catch (e) {
+            // Fallback if localStorage is unavailable
+            window.requestAnimationFrame(() => showWhatsNew());
+        }
+
+        // Allow opening the modal by clicking the version label
+        if (versionEl) {
+            versionEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                showWhatsNew();
+            });
+
+            // Tooltip on hover for version label
+            const tooltip = document.getElementById('version-tooltip');
+            if (tooltip) {
+                function positionVersionTooltip() {
+                    const rect = versionEl.getBoundingClientRect();
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    const left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                    const top = rect.bottom + 10;
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top = top + 'px';
+                }
+
+                versionEl.addEventListener('mouseenter', () => {
+                    positionVersionTooltip();
+                    tooltip.classList.add('show');
+                    tooltip.setAttribute('aria-hidden', 'false');
+                });
+                versionEl.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('show');
+                    tooltip.setAttribute('aria-hidden', 'true');
+                });
+                // Keep tooltip aligned on window resize while hovered
+                window.addEventListener('resize', () => {
+                    if (tooltip.classList.contains('show')) positionVersionTooltip();
+                });
+            }
+        }
 
         // Close button
         if (closeBtn) {
