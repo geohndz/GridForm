@@ -1340,6 +1340,57 @@ input[type="color"] {
     stroke: var(--text-primary);
 }
 
+/* Webcam button styling */
+.webcam-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-overlay-light);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-base);
+    padding: 0;
+    margin-right: var(--spacing-sm);
+}
+
+.webcam-btn:hover {
+    background: var(--bg-overlay);
+    border-color: var(--text-primary);
+}
+
+.webcam-btn svg {
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    stroke: var(--text-primary);
+    transition: stroke var(--transition-base);
+}
+
+.webcam-btn:hover svg {
+    stroke: var(--text-primary);
+}
+
+/* Recording effect animation for webcam on state */
+.webcam-btn.recording {
+    animation: recording-pulse 2s ease-in-out infinite;
+    border-color: #ff0000;
+}
+
+.webcam-btn.recording svg {
+    stroke: #ff0000;
+}
+
+@keyframes recording-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 0, 0, 0.3);
+    }
+}
+
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     #top-bar {

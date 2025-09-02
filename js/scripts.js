@@ -98,6 +98,13 @@ let settings = {
         clickEnabled: true // Whether mouse clicks create ripple effects
     },
     
+    // Webcam configuration
+    webcam: {
+        enabled: false,    // Whether webcam is active
+        intensity: 0.5,    // How much webcam affects patterns (0-1)
+        contrast: 1.0      // Webcam contrast multiplier
+    },
+    
     // Pattern blending configuration
     blendSettings: {
         mode: 'multiply',  // Blend mode: 'add', 'multiply', 'overlay', 'difference', 'screen'
@@ -173,7 +180,7 @@ function setup() {
     // Initialize special pattern systems (removed cellular)
     initVoronoi();   // Set up Voronoi pattern points
 
-    // Set up all UI components and event handlers
+    // Set up all UI components and event listeners
     setupControls();           // Main control panel event listeners
     setupPlayPauseButton();    // Play/pause button functionality
     setupSpeedButton();        // Speed control button
@@ -523,6 +530,11 @@ function updateButtonGroupPosition() {
  * Renders the ASCII art grid with all patterns, effects, and animations
  */
 function draw() {
+    // Skip rendering if webcam mode is active
+    if (webcamMode && isWebcamActive) {
+        return;
+    }
+    
     // Performance optimization: frame rate limiting
     const currentTime = Date.now();
     if (currentTime - lastFrameTime < frameInterval) {
@@ -885,7 +897,11 @@ function getPatternValue(x, y, pattern, time) {
             let mosaicHash = ((mosaicX * 73856093) ^ (mosaicY * 19349663)) % 1000000;
             value = (mosaicHash / 500000 - 1) + sin(time * pattern.speed * 100) * 0.3;
             break;
+            
+
     }
+
+
 
     // Normalize to 0-1 range (convert from -1 to 1 range)
     return (value + 1) / 2;
@@ -1433,6 +1449,17 @@ function setupControls() {
         settings.interactive.clickEnabled = e.target.checked;
     });
 
+    // Webcam controls
+    safeAddEventListener('webcamIntensity', 'input', (e) => {
+        settings.webcam.intensity = parseFloat(e.target.value);
+        document.getElementById('webcamIntensityValue').textContent = e.target.value;
+    });
+
+    safeAddEventListener('webcamContrast', 'input', (e) => {
+        settings.webcam.contrast = parseFloat(e.target.value);
+        document.getElementById('webcamContrastValue').textContent = e.target.value;
+    });
+
     // Colors Settings
     // Pattern Colors
     safeAddEventListener('pattern1Color', 'input', (e) => {
@@ -1735,7 +1762,8 @@ function setupDropdowns() {
         'colorsHeader',
         'pattern1Header',
         'pattern2Header',
-        'interactiveHeader'
+        'interactiveHeader',
+        'webcamHeader'
     ];
 
     const dropdownContents = [
@@ -1743,7 +1771,8 @@ function setupDropdowns() {
         'colorsContent',
         'pattern1Content',
         'pattern2Content',
-        'interactiveContent'
+        'interactiveContent',
+        'webcamContent'
     ];
 
     // Set initial state - Display Settings open by default
@@ -2783,24 +2812,11 @@ function updateBackgroundColor() {
 function updateButtonGroupBackground() {
     const buttonGroup = document.getElementById('button-group');
     if (!buttonGroup) return;
-    
-    // Use solid grey colors instead of opacity
-    const buttonBgColor = '#0a0a0a';  // Solid very dark grey
-    const buttonBgHoverColor = '#1a1a1a';  // Slightly lighter grey for hover
-    
-    // Apply the background color to all buttons in the button group
+
+    // Remove any previously forced inline styles so CSS theme rules apply
     const buttons = buttonGroup.querySelectorAll('button');
     buttons.forEach(button => {
-        button.style.backgroundColor = buttonBgColor;
-        
-        // Update hover state
-        button.addEventListener('mouseenter', () => {
-            button.style.backgroundColor = buttonBgHoverColor;
-        });
-        
-        button.addEventListener('mouseleave', () => {
-            button.style.backgroundColor = buttonBgColor;
-        });
+        button.style.backgroundColor = '';
     });
 }
 
@@ -3070,6 +3086,12 @@ function updateUIFromSettings() {
         interactiveToggle.querySelector('.toggle-switch-label').textContent = 'Enable';
         interactiveSettings.style.display = 'none';
     }
+    
+    // Update Webcam UI
+    document.getElementById('webcamIntensity').value = settings.webcam.intensity;
+    document.getElementById('webcamIntensityValue').textContent = settings.webcam.intensity.toFixed(1);
+    document.getElementById('webcamContrast').value = settings.webcam.contrast;
+    document.getElementById('webcamContrastValue').textContent = settings.webcam.contrast.toFixed(1);
     
     // Update Colors UI
     document.getElementById('backgroundColor').value = settings.colors.backgroundColor;
@@ -3443,3 +3465,294 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// Webcam Functionality
+let webcamStream = null;
+let webcamVideo = null;
+let webcamCanvas = null;
+let webcamContext = null;
+let isWebcamActive = false;
+let webcamMode = false; // Whether we're in webcam display mode
+let webcamInterval = null;
+
+// Create webcam elements
+function createWebcamElements() {
+    // Create video element for webcam stream
+    webcamVideo = document.createElement('video');
+    webcamVideo.style.display = 'none';
+    webcamVideo.autoplay = true;
+    webcamVideo.muted = true;
+    webcamVideo.playsInline = true;
+    document.body.appendChild(webcamVideo);
+    
+    // Create canvas for processing webcam frames
+    webcamCanvas = document.createElement('canvas');
+    webcamCanvas.style.display = 'none';
+    webcamContext = webcamCanvas.getContext('2d');
+    document.body.appendChild(webcamCanvas);
+}
+
+// ASCII gradient for webcam display
+const webcamGradient = "_______.:!/r(l1Z4H9W8$@";
+const preparedWebcamGradient = webcamGradient.replaceAll('_', '\u00A0');
+
+// Get character by grayscale value
+function getWebcamCharByScale(scale) {
+    const val = Math.floor(scale / 255 * (webcamGradient.length - 1));
+    return preparedWebcamGradient[val];
+}
+
+// Render webcam as ASCII art
+function renderWebcamASCII() {
+    if (!isWebcamActive || !webcamVideo || !webcamContext) return;
+    
+    try {
+        // Use the same dimensions as the main canvas grid
+        const width = gridCols;
+        const height = gridRows;
+        webcamCanvas.width = width;
+        webcamCanvas.height = height;
+        
+        // Draw mirrored video frame to canvas
+        webcamContext.save();
+        webcamContext.translate(width, 0);
+        webcamContext.scale(-1, 1);
+        webcamContext.drawImage(webcamVideo, 0, 0, width, height);
+        webcamContext.restore();
+        
+        // Get image data
+        const imageData = webcamContext.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        
+        // Convert to ASCII
+        let asciiText = '';
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const avg = (r + g + b) / 3;
+            
+            asciiText += getWebcamCharByScale(avg);
+            
+            // Add line break at end of each row
+            if ((i / 4 + 1) % width === 0) {
+                asciiText += '\n';
+            }
+        }
+        
+        // Display ASCII art in the main canvas area
+        displayWebcamASCII(asciiText);
+        
+    } catch (error) {
+        console.error('Error rendering webcam ASCII:', error);
+    }
+}
+
+// Display webcam ASCII art
+function displayWebcamASCII(asciiText) {
+    // Hide only the main p5 canvas element and show ASCII text
+    const domCanvas = (canvas && canvas.canvas) ? canvas.canvas : document.querySelector('canvas');
+    if (domCanvas) {
+        domCanvas.style.display = 'none';
+    }
+    
+    // Create or update ASCII display
+    let asciiDisplay = document.getElementById('webcam-ascii-display');
+    if (!asciiDisplay) {
+        asciiDisplay = document.createElement('div');
+        asciiDisplay.id = 'webcam-ascii-display';
+        document.getElementById('canvas-container').appendChild(asciiDisplay);
+    }
+    
+    // Always update styling to match current settings
+    updateWebcamDisplayStyle(asciiDisplay);
+    asciiDisplay.textContent = asciiText;
+}
+
+// Update webcam display styling to match current settings
+function updateWebcamDisplayStyle(asciiDisplay) {
+    asciiDisplay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'FeatureMono', 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, 'Courier New', monospace;
+        font-size: ${settings.charSize}px;
+        line-height: ${settings.charSize * settings.charSpacing}px;
+        color: white;
+        white-space: pre;
+        z-index: 120; /* above canvas (base ~100), below UI (>=1000) */
+        background: transparent; /* don't cover borders/backgrounds */
+        pointer-events: none; /* allow clicks to pass through to UI */
+        overflow: hidden;
+    `;
+}
+
+// Start webcam
+async function startWebcam() {
+    try {
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('getUserMedia not supported');
+        }
+        
+        if (!webcamVideo) {
+            createWebcamElements();
+        }
+        
+        // Use the simple approach from the working example
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        webcamVideo.srcObject = webcamStream;
+        webcamVideo.play();
+        
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+            webcamVideo.onloadedmetadata = resolve;
+        });
+        
+        isWebcamActive = true;
+        webcamMode = true;
+        updateWebcamUI();
+        
+        // Start ASCII rendering loop
+        startWebcamRendering();
+        
+        console.log('Webcam started successfully');
+    } catch (error) {
+        console.error('Error starting webcam:', error);
+        isWebcamActive = false;
+        webcamMode = false;
+        updateWebcamUI();
+        
+        // Show user-friendly error message
+        if (error.name === 'NotAllowedError') {
+            alert('Camera access denied. Please allow camera access and try again.');
+        } else if (error.name === 'NotFoundError') {
+            alert('No camera found. Please connect a camera and try again.');
+        } else {
+            alert('Unable to access webcam. Please check your camera and try again.');
+        }
+    }
+}
+
+// Start webcam rendering loop
+function startWebcamRendering() {
+    if (webcamInterval) {
+        clearInterval(webcamInterval);
+    }
+    
+    webcamInterval = setInterval(() => {
+        if (isWebcamActive && webcamMode) {
+            requestAnimationFrame(() => {
+                renderWebcamASCII();
+            });
+        }
+    }, 100); // 10 FPS for smooth but not too intensive
+}
+
+// Stop webcam
+function stopWebcam() {
+    // Stop rendering loop
+    if (webcamInterval) {
+        clearInterval(webcamInterval);
+        webcamInterval = null;
+    }
+    
+    // Stop webcam stream
+    if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+        webcamStream = null;
+    }
+    
+    if (webcamVideo) {
+        webcamVideo.srcObject = null;
+    }
+    
+    // Hide ASCII display and show only the p5 canvas element
+    const asciiDisplay = document.getElementById('webcam-ascii-display');
+    if (asciiDisplay) {
+        asciiDisplay.remove();
+    }
+    
+    const domCanvas = (canvas && canvas.canvas) ? canvas.canvas : document.querySelector('canvas');
+    if (domCanvas) {
+        domCanvas.style.display = 'block';
+    }
+    
+    isWebcamActive = false;
+    webcamMode = false;
+    updateWebcamUI();
+    
+    console.log('Webcam stopped');
+}
+
+// Toggle webcam on/off
+function toggleWebcam() {
+    if (isWebcamActive) {
+        stopWebcam();
+    } else {
+        startWebcam();
+    }
+}
+
+// Update webcam UI
+function updateWebcamUI() {
+    const webcamBtn = document.getElementById('webcam-btn');
+    const webcamIconOff = document.getElementById('webcam-icon-off');
+    const webcamIconOn = document.getElementById('webcam-icon-on');
+    
+    if (webcamBtn) {
+        if (isWebcamActive) {
+            webcamBtn.classList.add('recording');
+            webcamIconOff.style.display = 'none';
+            webcamIconOn.style.display = 'block';
+            webcamBtn.title = 'Stop Webcam';
+        } else {
+            webcamBtn.classList.remove('recording');
+            webcamIconOff.style.display = 'block';
+            webcamIconOn.style.display = 'none';
+            webcamBtn.title = 'Start Webcam';
+        }
+    }
+}
+
+// Get webcam frame data for pattern generation
+function getWebcamFrameData() {
+    if (!isWebcamActive || !webcamVideo || !webcamContext) {
+        return null;
+    }
+    
+    try {
+        // Draw current video frame to canvas
+        webcamContext.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
+        
+        // Get image data
+        const imageData = webcamContext.getImageData(0, 0, webcamCanvas.width, webcamCanvas.height);
+        return imageData;
+    } catch (error) {
+        console.error('Error getting webcam frame:', error);
+        return null;
+    }
+}
+
+
+
+// Initialize webcam functionality when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Webcam button event listener
+    const webcamBtn = document.getElementById('webcam-btn');
+    if (webcamBtn) {
+        webcamBtn.addEventListener('click', toggleWebcam);
+    }
+    
+    // Clean up webcam on page unload
+    window.addEventListener('beforeunload', () => {
+        if (isWebcamActive) {
+            stopWebcam();
+        }
+    });
+});
