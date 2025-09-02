@@ -102,6 +102,8 @@
     --canvas-max-height: 80vh;
 }
 
+/* Button SVG styling - only for actual buttons */
+
 /* Light theme variations */
 @media (prefers-color-scheme: light) {
     :root {
@@ -205,7 +207,7 @@ body {
 .sidebar-toggle-btn svg {
     width: var(--spacing-xl);
     height: var(--spacing-xl);
-    stroke: var(--border-primary);
+    stroke: var(--text-primary);
     transition: stroke var(--transition-base), transform var(--transition-base);
 }
 
@@ -1061,7 +1063,7 @@ input[type="color"] {
 .toast-close svg {
     width: 100%;
     height: 100%;
-    stroke: currentColor;
+    stroke: var(--text-primary);
 }
 
 /* Toast type variations */
@@ -1330,7 +1332,7 @@ input[type="color"] {
 .settings-btn svg {
     width: var(--spacing-xl);
     height: var(--spacing-xl);
-    stroke: var(--text-secondary);
+    stroke: var(--text-primary);
     transition: stroke var(--transition-base);
 }
 
@@ -1354,9 +1356,10 @@ input[type="color"] {
     }
     
     .settings-btn svg {
-        width: 18px;
-        height: 18px;
-    }
+    width: 18px;
+    height: 18px;
+    stroke: var(--text-primary);
+}
     
     /* Ensure canvas container has adequate height on mobile */
     #canvas-container {
@@ -1549,7 +1552,7 @@ canvas {
 .sidebar-toggle-btn svg {
     width: var(--spacing-xl) !important;
     height: var(--spacing-xl) !important;
-    stroke: var(--text-secondary) !important;
+    stroke: var(--text-primary) !important;
     transition: stroke var(--transition-base) !important;
 }
 
@@ -1628,7 +1631,7 @@ canvas {
 .settings-close-btn svg {
     width: var(--spacing-xl);
     height: var(--spacing-xl);
-    stroke: var(--text-secondary);
+    stroke: var(--text-primary);
     transition: stroke var(--transition-base);
 }
 
