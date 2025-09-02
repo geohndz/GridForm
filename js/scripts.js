@@ -183,6 +183,7 @@ function setup() {
     setupResizeHandling();     // Controls panel resize functionality
     setupSidebarToggle();      // Sidebar hide/show functionality
     setupTooltips();           // Button tooltips
+    setupCodeFunctionality();  // Code generation and loading functionality
     
     // Initialize color settings
     settings.colors.paletteColors = COLOR_PALETTES[settings.colors.currentPalette];
@@ -598,6 +599,15 @@ function renderGrid(startX, startY, actualCharWidth, actualCharHeight, actualCha
             let glowIntensity1 = settings.pattern1.glow ? value1 : 0;
             let glowIntensity2 = 0;
             let useRamp1 = true;
+            
+            // Debug logging for first few cells
+            if (x === 0 && y === 0) {
+                console.log('Rendering colors:', {
+                    pattern1Color: settings.pattern1.color,
+                    pattern2Color: settings.pattern2.enabled ? settings.pattern2.color : 'disabled',
+                    finalColor: finalColor
+                });
+            }
 
             // Add secondary pattern if enabled (pattern blending)
             if (settings.pattern2.enabled) {
@@ -1969,6 +1979,9 @@ function setupRandomizeButton() {
 
         // Update UI to reflect changes
         updateUIFromSettings();
+        
+        // Update pattern code display
+        updatePatternCodeDisplay();
     });
 }
 
@@ -2750,44 +2763,7 @@ function updatePalettePreview() {
     });
 }
 
-function showToast(message, type = 'info') {
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #333;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 4px;
-        z-index: 10000;
-        font-family: var(--font-family-primary);
-        font-size: 14px;
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease;
-    `;
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-    
-    // Animate in
-    setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(0)';
-    }, 10);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
-    }, 3000);
-}
+
 
 function updateBackgroundColor() {
     const canvasContainer = document.getElementById('canvas-container');
@@ -2835,6 +2811,14 @@ function updateColorsFromPalette() {
     
     const palette = settings.colors.paletteColors;
     const mode = settings.colors.paletteColorMode || 'single';
+    
+    // Debug logging
+    console.log('updateColorsFromPalette called:', {
+        usePalette: settings.colors.usePalette,
+        paletteColors: settings.colors.paletteColors,
+        mode: mode,
+        paletteIndex: settings.colors.paletteIndex
+    });
     
     switch (mode) {
         case 'single':
@@ -2886,6 +2870,9 @@ function updateColorsFromPalette() {
 
 function updateColorsFromAnimation() {
     if (!settings.colors.animationEnabled) return;
+    
+    // Don't override colors if palette mode is enabled
+    if (settings.colors.usePalette) return;
     
     // Update internal animation time
     settings.colors.animationTime += 0.016 * speedMultiplier;
@@ -3095,6 +3082,12 @@ function updateUIFromSettings() {
     document.getElementById('colorPaletteSelect').value = settings.colors.currentPalette;
     document.getElementById('paletteColorMode').value = settings.colors.paletteColorMode || 'single';
     
+    // Sync pattern color properties with color settings
+    settings.pattern1.color = settings.colors.pattern1Color;
+    if (settings.pattern2.enabled) {
+        settings.pattern2.color = settings.colors.pattern2Color;
+    }
+    
     // Show/hide color animation settings
     const animationSettings = document.getElementById('colorAnimationSettings');
     if (animationSettings) {
@@ -3122,4 +3115,331 @@ function updateUIFromSettings() {
     
     // Update background color
     updateBackgroundColor();
+    
+    // Update pattern code display
+    updatePatternCodeDisplay();
+}
+
+/**
+ * Sets up code generation and loading functionality
+ * Handles copying pattern codes to clipboard and loading patterns from codes
+ */
+function setupCodeFunctionality() {
+    // Set up copy code button
+    const copyCodeBtn = document.getElementById('copy-code-btn');
+    if (copyCodeBtn) {
+        copyCodeBtn.addEventListener('click', copyPatternCode);
+    }
+    
+    // Set up load code button
+    const loadCodeBtn = document.getElementById('load-code-btn');
+    if (loadCodeBtn) {
+        loadCodeBtn.addEventListener('click', loadPatternFromCode);
+    }
+    
+    // Set up code input field enter key
+    const codeInput = document.getElementById('pattern-code-input');
+    if (codeInput) {
+        codeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadPatternFromCode();
+            }
+        });
+    }
+    
+    // Initialize code display
+    updatePatternCodeDisplay();
+    
+    console.log('Code functionality initialized successfully');
+}
+
+/**
+ * Generates a unique code representing the current pattern configuration
+ * @returns {string} Base64 encoded pattern configuration
+ */
+function generatePatternCode() {
+    try {
+        // Create a simplified settings object for the code
+        const codeSettings = {
+            grid: {
+                cols: settings.gridCols,
+                rows: settings.gridRows,
+                charSize: settings.charSize,
+                charSpacing: settings.charSpacing
+            },
+            pattern1: {
+                type: settings.pattern1.type,
+                speed: settings.pattern1.speed,
+                scale: settings.pattern1.scale,
+                color: settings.colors.pattern1Color,
+                glow: settings.pattern1.glow,
+                noiseVariant: settings.pattern1.noiseVariant,
+                charSet: currentRamp1
+            },
+            pattern2: {
+                enabled: settings.pattern2.enabled,
+                type: settings.pattern2.type,
+                speed: settings.pattern2.speed,
+                scale: settings.pattern2.scale,
+                color: settings.colors.pattern2Color,
+                glow: settings.pattern2.glow,
+                noiseVariant: settings.pattern2.noiseVariant,
+                charSet: currentRamp2
+            },
+            interactive: {
+                enabled: settings.interactive.enabled,
+                type: settings.interactive.type,
+                strength: settings.interactive.strength,
+                radius: settings.interactive.radius,
+                clickEnabled: settings.interactive.clickEnabled
+            },
+            colors: {
+                backgroundColor: settings.colors.backgroundColor,
+                blendMode: settings.colors.blendMode,
+                blendAmount: settings.colors.blendAmount
+            }
+        };
+        
+        // Convert to JSON and encode to base64 (Unicode-safe)
+        const jsonString = JSON.stringify(codeSettings);
+        const code = btoa(unescape(encodeURIComponent(jsonString)));
+        
+        // Add a simple checksum for validation
+        const checksum = code.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000;
+        return `${code}.${checksum.toString().padStart(3, '0')}`;
+    } catch (error) {
+        console.error('Error generating pattern code:', error);
+        return 'ERROR';
+    }
+}
+
+/**
+ * Updates the pattern code display in the top bar
+ */
+function updatePatternCodeDisplay() {
+    const codeDisplay = document.getElementById('pattern-code');
+    if (codeDisplay) {
+        const code = generatePatternCode();
+        codeDisplay.textContent = code;
+        codeDisplay.title = `Pattern Code: ${code}`;
+    }
+}
+
+/**
+ * Copies the current pattern code to the clipboard
+ */
+async function copyPatternCode() {
+    try {
+        const code = generatePatternCode();
+        await navigator.clipboard.writeText(code);
+        
+        // Show success feedback
+        const copyBtn = document.getElementById('copy-code-btn');
+        if (copyBtn) {
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        }
+        
+        // Show toast notification
+        showToast('Pattern code copied to clipboard!', 'success');
+    } catch (error) {
+        console.error('Failed to copy pattern code:', error);
+        showToast('Failed to copy pattern code', 'error');
+    }
+}
+
+/**
+ * Loads a pattern configuration from a code
+ * @param {string} code - The pattern code to load
+ */
+function loadPatternFromCode(code = null) {
+    try {
+        // Get code from input if not provided
+        if (!code) {
+            const codeInput = document.getElementById('pattern-code-input');
+            code = codeInput ? codeInput.value.trim() : '';
+        }
+        
+        if (!code) {
+            showToast('Please enter a pattern code', 'error');
+            return;
+        }
+        
+        // Parse the code
+        const parts = code.split('.');
+        if (parts.length !== 2) {
+            showToast('Invalid pattern code format', 'error');
+            return;
+        }
+        
+        const encodedSettings = parts[0];
+        const checksum = parseInt(parts[1]);
+        
+        // Validate checksum
+        const calculatedChecksum = encodedSettings.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000;
+        if (checksum !== calculatedChecksum) {
+            showToast('Invalid pattern code (checksum mismatch)', 'error');
+            return;
+        }
+        
+        // Decode and parse settings (Unicode-safe)
+        const jsonString = decodeURIComponent(escape(atob(encodedSettings)));
+        const codeSettings = JSON.parse(jsonString);
+        
+        // Apply the settings
+        applyPatternCode(codeSettings);
+        
+        // Clear input and show success
+        const codeInput = document.getElementById('pattern-code-input');
+        if (codeInput) {
+            codeInput.value = '';
+        }
+        
+        showToast('Pattern loaded successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error loading pattern code:', error);
+        showToast('Failed to load pattern code', 'error');
+    }
+}
+
+/**
+ * Applies pattern settings from a code to the current configuration
+ * @param {object} codeSettings - The decoded pattern settings
+ */
+function applyPatternCode(codeSettings) {
+    try {
+        // Apply grid settings
+        if (codeSettings.grid) {
+            settings.gridCols = codeSettings.grid.cols || settings.gridCols;
+            settings.gridRows = codeSettings.grid.rows || settings.gridRows;
+            settings.charSize = codeSettings.grid.charSize || settings.charSize;
+            settings.charSpacing = codeSettings.grid.charSpacing || settings.charSpacing;
+            
+            // Update grid dimensions
+            gridCols = settings.gridCols;
+            gridRows = settings.gridRows;
+        }
+        
+        // Apply pattern1 settings
+        if (codeSettings.pattern1) {
+            settings.pattern1.type = codeSettings.pattern1.type || settings.pattern1.type;
+            settings.pattern1.speed = codeSettings.pattern1.speed || settings.pattern1.speed;
+            settings.pattern1.scale = codeSettings.pattern1.scale || settings.pattern1.scale;
+            settings.colors.pattern1Color = codeSettings.pattern1.color || settings.colors.pattern1Color;
+            settings.pattern1.color = settings.colors.pattern1Color; // Sync pattern color property
+            settings.pattern1.glow = codeSettings.pattern1.glow !== undefined ? codeSettings.pattern1.glow : settings.pattern1.glow;
+            settings.pattern1.noiseVariant = codeSettings.pattern1.noiseVariant || settings.pattern1.noiseVariant;
+            
+            // Debug logging
+            console.log('Pattern1 color loaded:', {
+                fromCode: codeSettings.pattern1.color,
+                finalColor: settings.pattern1.color,
+                pattern1Color: settings.colors.pattern1Color
+            });
+            
+            // Update character set
+            if (codeSettings.pattern1.charSet) {
+                currentRamp1 = codeSettings.pattern1.charSet;
+            }
+        }
+        
+        // Apply pattern2 settings
+        if (codeSettings.pattern2) {
+            settings.pattern2.enabled = codeSettings.pattern2.enabled !== undefined ? codeSettings.pattern2.enabled : settings.pattern2.enabled;
+            settings.pattern2.type = codeSettings.pattern2.type || settings.pattern2.type;
+            settings.pattern2.speed = codeSettings.pattern2.speed || settings.pattern2.speed;
+            settings.pattern2.scale = codeSettings.pattern2.scale || settings.pattern2.scale;
+            settings.colors.pattern2Color = codeSettings.pattern2.color || settings.colors.pattern2Color;
+            settings.pattern2.color = settings.colors.pattern2Color; // Sync pattern color property
+            settings.pattern2.glow = codeSettings.pattern2.glow !== undefined ? codeSettings.pattern2.glow : settings.pattern2.glow;
+            settings.pattern2.noiseVariant = codeSettings.pattern2.noiseVariant || settings.pattern2.noiseVariant;
+            
+            // Debug logging
+            console.log('Pattern2 color loaded:', {
+                fromCode: codeSettings.pattern2.color,
+                finalColor: settings.pattern2.color,
+                pattern2Color: settings.colors.pattern2Color
+            });
+            
+            // Update character set
+            if (codeSettings.pattern2.charSet) {
+                currentRamp2 = codeSettings.pattern2.charSet;
+            }
+        }
+        
+        // Apply interactive settings
+        if (codeSettings.interactive) {
+            settings.interactive.enabled = codeSettings.interactive.enabled !== undefined ? codeSettings.interactive.enabled : settings.interactive.enabled;
+            settings.interactive.type = codeSettings.interactive.type || settings.interactive.type;
+            settings.interactive.strength = codeSettings.interactive.strength || settings.interactive.strength;
+            settings.interactive.radius = codeSettings.interactive.radius || settings.interactive.radius;
+            settings.interactive.clickEnabled = codeSettings.interactive.clickEnabled !== undefined ? codeSettings.interactive.clickEnabled : settings.interactive.clickEnabled;
+        }
+        
+        // Apply color settings
+        if (codeSettings.colors) {
+            settings.colors.backgroundColor = codeSettings.colors.backgroundColor || settings.colors.backgroundColor;
+            settings.colors.blendMode = codeSettings.colors.blendMode || settings.colors.blendMode;
+            settings.blendSettings.amount = codeSettings.colors.blendAmount || settings.blendSettings.amount;
+        }
+        
+        // Disable palette mode when loading a pattern code to preserve the specific colors
+        if (settings.colors.usePalette) {
+            settings.colors.usePalette = false;
+            // Also disable color animation to prevent conflicts
+            if (settings.colors.animationEnabled) {
+                settings.colors.animationEnabled = false;
+            }
+        }
+        
+        // Update UI to reflect new settings
+        updateUIFromSettings();
+        
+        // Update canvas size for new grid dimensions
+        updateCanvasSize();
+        
+        // Update background color
+        updateBackgroundColor();
+        
+        // Ensure colors are properly synced after loading pattern code
+        updateColorsFromPalette();
+        
+        // Update pattern code display
+        updatePatternCodeDisplay();
+        
+    } catch (error) {
+        console.error('Error applying pattern code:', error);
+        showToast('Error applying pattern settings', 'error');
+    }
+}
+
+/**
+ * Shows a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - The type of toast ('success', 'error', 'info')
+ */
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(toast);
+    
+    // Show toast
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }

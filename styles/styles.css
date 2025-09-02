@@ -3,8 +3,8 @@
     /* Color Palette */
     --color-primary: #000000;
     --color-secondary: #ffffff;
-    --color-accent: #00ff88;
-    --color-accent-hover: #00dd77;
+    --color-accent: #ffffff;
+    --color-accent-hover: #cccccc;
     
     /* Background Colors */
     --bg-primary: #000000;
@@ -22,7 +22,7 @@
     --text-primary: #ffffff;
     --text-secondary: #cccccc;
     --text-muted: #888888;
-    --text-accent: #00ff88;
+    --text-accent: #ffffff;
     
     /* Theme toggle button */
     --theme-toggle-size: 40px;
@@ -331,6 +331,64 @@ body {
     border-bottom: none;
     margin-bottom: 0;
 }
+
+/* Code Input Styles */
+
+.code-input-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.code-input {
+    flex: 1;
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border: var(--border-width) solid var(--border-primary);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-base);
+    transition: all var(--transition-base);
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+}
+
+.code-input::placeholder {
+    color: var(--text-muted);
+}
+
+.load-code-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.load-code-btn:hover {
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+}
+
+.load-code-btn svg {
+    width: var(--lock-icon-size);
+    height: var(--lock-icon-size);
+    stroke: currentColor;
+    transition: all var(--transition-base);
+}
+
+
 
 .performance-info {
     margin-top: var(--spacing-md);
@@ -1006,6 +1064,29 @@ input[type="color"] {
     stroke: currentColor;
 }
 
+/* Toast type variations */
+.toast-success {
+    border-color: var(--color-accent);
+    border-left: 4px solid var(--color-accent);
+}
+
+.toast-error {
+    border-color: #ff4444;
+    border-left: 4px solid #ff4444;
+}
+
+.toast-info {
+    border-color: var(--text-accent);
+    border-left: 4px solid var(--text-accent);
+}
+
+/* Simple toast for code functionality */
+.toast:not(.toast-header) {
+    padding: var(--spacing-md) var(--spacing-lg);
+    min-width: 250px;
+    max-width: 350px;
+}
+
 /* GIF Progress Overlay */
 .gif-progress-overlay {
     position: fixed;
@@ -1152,6 +1233,76 @@ input[type="color"] {
     line-height: 1;
 }
 
+.top-bar-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 var(--spacing-xl);
+    gap: var(--spacing-md);
+}
+
+
+
+.code-text {
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.copy-code-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.copy-code-btn:hover {
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+}
+
+.copy-code-btn svg {
+    width: var(--lock-icon-size);
+    height: var(--lock-icon-size);
+    stroke: currentColor;
+    transition: all var(--transition-base);
+}
+
+.copy-code-btn.copied {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.copy-code-btn.copied svg {
+    display: none;
+}
+
+.copy-code-btn.copied::after {
+    content: "";
+    width: var(--lock-icon-size);
+    height: var(--lock-icon-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='white' class='size-6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m4.5 12.75 6 6 9-13.5' /%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
 .top-bar-right {
     display: flex;
     align-items: center;
@@ -1210,6 +1361,16 @@ input[type="color"] {
     /* Ensure canvas container has adequate height on mobile */
     #canvas-container {
         min-height: 400px;
+    }
+    
+    /* Hide code display on mobile for space */
+    .top-bar-center {
+        display: none;
+    }
+    
+    /* Adjust top bar padding for mobile */
+    #top-bar {
+        padding: 0 var(--spacing-md);
     }
 }
 
