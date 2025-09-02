@@ -1038,7 +1038,7 @@ function applyGlow(color, intensity, charSize) {
     if (intensity <= 0) return;
 
     // Performance optimization: check glow quality setting
-    const glowQuality = document.getElementById('glowQualitySelect')?.value || 'medium';
+    const glowQuality = 'medium'; // Default to medium quality
     if (glowQuality === 'low') return; // Skip glow entirely for low quality
 
     // Performance optimization: cache color parsing
@@ -1483,39 +1483,7 @@ function setupControls() {
         }
     });
 
-    // Performance Settings
-    safeAddEventListener('targetFpsSelect', 'change', (e) => {
-        targetFPS = parseInt(e.target.value);
-        frameInterval = 1000 / targetFPS;
-        // console.log(`Target FPS changed to: ${targetFPS}`);
-    });
 
-    safeAddEventListener('glowQualitySelect', 'change', (e) => {
-        const quality = e.target.value;
-        // Update glow settings based on quality selection
-        switch (quality) {
-            case 'low':
-                // Disable glow effects for maximum performance
-                settings.pattern1.glow = false;
-                settings.pattern2.glow = false;
-                // Update UI checkboxes
-                document.getElementById('pattern1Glow').checked = false;
-                document.getElementById('pattern2Glow').checked = false;
-                break;
-            case 'medium':
-                // Keep current glow settings
-                break;
-            case 'high':
-                // Enable glow effects for best quality
-                settings.pattern1.glow = true;
-                settings.pattern2.glow = true;
-                // Update UI checkboxes
-                document.getElementById('pattern1Glow').checked = true;
-                document.getElementById('pattern2Glow').checked = true;
-                break;
-        }
-        console.log(`Glow quality changed to: ${quality}`);
-    });
 
     // Settings Modal Functionality
     const settingsBtn = document.getElementById('settings-btn');
@@ -1558,11 +1526,7 @@ function setupControls() {
             const fps = parseInt(e.target.value);
             targetFPS = fps;
             frameInterval = 1000 / fps;
-            // Update the main performance settings dropdown
-            const mainFpsSelect = document.getElementById('targetFpsSelect');
-            if (mainFpsSelect) {
-                mainFpsSelect.value = fps;
-            }
+
             console.log(`Target FPS changed to: ${fps}`);
         });
     }
@@ -1570,11 +1534,7 @@ function setupControls() {
     if (modalGlowQuality) {
         modalGlowQuality.addEventListener('change', (e) => {
             const quality = e.target.value;
-            // Update the main glow quality dropdown
-            const mainGlowSelect = document.getElementById('glowQualitySelect');
-            if (mainGlowSelect) {
-                mainGlowSelect.value = quality;
-            }
+
             // Apply the same logic as the main dropdown
             switch (quality) {
                 case 'low':
@@ -1603,7 +1563,7 @@ function setupControls() {
             modalTargetFps.value = targetFPS;
         }
         if (modalGlowQuality) {
-            modalGlowQuality.value = document.getElementById('glowQualitySelect')?.value || 'medium';
+            modalGlowQuality.value = 'medium';
         }
         if (modalAnimationSmoothing) {
             modalAnimationSmoothing.value = 'medium'; // Default value
@@ -1620,7 +1580,6 @@ function setupDropdowns() {
         'colorsHeader',
         'pattern1Header',
         'pattern2Header',
-        'performanceHeader',
         'interactiveHeader'
     ];
 
@@ -1629,7 +1588,6 @@ function setupDropdowns() {
         'colorsContent',
         'pattern1Content',
         'pattern2Content',
-        'performanceContent',
         'interactiveContent'
     ];
 
