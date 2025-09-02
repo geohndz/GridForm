@@ -3756,3 +3756,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// What's New modal logic
+(function() {
+    const modal = document.getElementById('whatsnew-modal');
+    const closeBtn = document.getElementById('whatsnew-close');
+
+    function showWhatsNew() {
+        if (!modal) return;
+        modal.classList.add('show');
+    }
+
+    function hideWhatsNew() {
+        if (!modal) return;
+        modal.classList.remove('show');
+    }
+
+    if (modal) {
+        // Always open on load (no persistence)
+        window.requestAnimationFrame(() => showWhatsNew());
+
+        // Close button
+        if (closeBtn) {
+            closeBtn.addEventListener('click', hideWhatsNew);
+        }
+
+        // Click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideWhatsNew();
+        });
+
+        // Esc to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('show')) hideWhatsNew();
+        });
+    }
+})();

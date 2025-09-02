@@ -1624,6 +1624,125 @@ canvas {
     backdrop-filter: blur(5px);
 }
 
+/* What's New Modal */
+.whatsnew-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-overlay);
+    z-index: var(--z-overlay);
+    backdrop-filter: blur(5px);
+}
+
+.whatsnew-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.whatsnew-modal-content {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 520px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn var(--transition-slow) ease-out;
+}
+
+.whatsnew-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.whatsnew-modal-header h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
+    display: inline-flex;
+    align-items: center;
+}
+
+.whatsnew-modal-header h2 svg {
+    margin-left: var(--spacing-sm);
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    stroke: var(--text-primary);
+}
+
+.whatsnew-modal-body {
+    padding: var(--spacing-xl);
+}
+
+.whatsnew-intro { display: none; }
+
+.whatsnew-version-label {
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-right: var(--spacing-xs);
+}
+
+.whatsnew-list {
+    margin: 0;
+    padding-left: var(--spacing-xl);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.whatsnew-list li {
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Icon list layout */
+.whatsnew-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xl);
+}
+
+.whatsnew-item {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+}
+
+.whatsnew-icon svg {
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    stroke: var(--text-primary);
+}
+
+.whatsnew-text {
+    flex: 1;
+}
+
+.whatsnew-title {
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-md); /* Match sidebar section headers */
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.whatsnew-desc {
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-base); /* Match sidebar label text */
+    color: var(--text-secondary);
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 .settings-modal.show {
     display: flex;
     align-items: center;
@@ -1656,8 +1775,6 @@ canvas {
     font-weight: 600;
     color: var(--text-primary);
     font-family: var(--font-family-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .settings-close-btn {
@@ -1713,13 +1830,12 @@ canvas {
     color: var(--text-primary);
     font-family: var(--font-family-primary);
     font-size: var(--font-size-base);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .settings-modal-body select {
     width: 100%;
     padding: var(--spacing-sm);
+    padding-right: var(--spacing-3xl);
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
@@ -1727,6 +1843,13 @@ canvas {
     font-family: var(--font-family-primary);
     font-size: var(--font-size-sm);
     transition: border-color var(--transition-base);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 14px 14px;
+    background-position: right var(--spacing-md) center;
 }
 
 .settings-modal-body select:focus {
